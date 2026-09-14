@@ -14,5 +14,23 @@ module.exports = {
       env: { NODE_ENV: 'production' },
       max_restarts: 10,
     },
+    {
+      // Stakes the vault's idle BNB (scripts/keeper.mjs). Start only once its wallet holds gas money:
+      //   pm2 start ecosystem.config.js --only ladder-keeper && pm2 save
+      name: 'ladder-keeper',
+      cwd: '/var/www/coreoslab/projects/project21 - Legacy Ladder',
+      script: 'scripts/keeper.mjs',
+      interpreter: NODE,
+      env: {
+        VAULT_ADDRESS: '0x0C09EC94aDb65314448562B028FC5AfDBa421742',
+        KEEPER_ACCOUNT: 'legacy-ladder-keeper',
+        KEEPER_PASSWORD_FILE: '/root/.foundry/keystores/legacy-ladder-keeper.password',
+        CAST_BIN: '/root/.foundry/bin/cast',
+        INTERVAL_SECONDS: '600',
+        MAX_GAS_GWEI: '1',
+      },
+      max_restarts: 10,
+      restart_delay: 60000,
+    },
   ],
 };
