@@ -1,0 +1,19 @@
+{
+  "name": "legacy-ladder",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3021",
+    "build": "next build",
+    "start": "next start -p 3021 -H 127.0.0.1"
+  },
+  "dependencies": {
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "wagmi": "^2.14.0",
+    "viem": "^2.21.0",
+    "@tanstack/react-query": "^5.62.0",
+    "mysql2": "^3.11.5"
+  }
+}

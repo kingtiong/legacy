@@ -1,0 +1,24 @@
+# ---- secrets: never commit ----
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+keystore/
+**/secrets/
+
+# ---- website (Next.js) ----
+node_modules/
+.next/
+out/
+
+# ---- contracts (Foundry) ----
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+
+# ---- editor / OS ----
+.DS_Store
+.vscode/
+.idea/
