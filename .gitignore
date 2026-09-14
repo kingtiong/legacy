@@ -22,3 +22,6 @@ contracts/broadcast/**/dry-run/
 .DS_Store
 .vscode/
 .idea/
+
+# ---- test builds of the website ----
+.next-*/

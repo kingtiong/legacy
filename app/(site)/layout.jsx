@@ -2,6 +2,7 @@ import Link from 'next/link';
 import SiteHeader from '../../components/SiteHeader';
 import { PAGES } from '../../lib/pages';
 import { NAME } from '../../lib/config';
+import { LIVE } from '../../lib/protocol';
 
 export default function SiteLayout({ children }) {
   return (
@@ -17,7 +18,11 @@ export default function SiteLayout({ children }) {
           <nav className="footnav" aria-label="Footer">
             {PAGES.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
           </nav>
-          <span className="footnote">Pre-launch. Nothing is deployed, and nothing here is financial advice.</span>
+          <span className="footnote">
+            {LIVE
+              ? 'Live on BNB Smart Chain. Unaudited contracts. Nothing here is financial advice.'
+              : 'Pre-launch. Nothing is deployed, and nothing here is financial advice.'}
+          </span>
         </div>
       </footer>
     </>
