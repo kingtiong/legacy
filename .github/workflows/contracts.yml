@@ -33,11 +33,12 @@ jobs:
           status=0
           forge test --match-path "test/fork/*" --threads 1 --rpc-url "$BSC_RPC_URL" \
             --fork-retries 8 --fork-retry-backoff 3000 --compute-units-per-second 60 2>&1 | tee fork.log || status=$?
-          # Surface failures as annotations, readable without opening the log.
-          grep -E "\[FAIL|Error|error code|HTTP error|rate limit|429|403" fork.log | head -15 | while IFS= read -r line; do
-            echo "::error title=fork test::${line:0:900}"
-          done
-          exit $status
+          if [ "$status" -ne 0 ]; then
+            # Surface the cause as annotations (max 10), readable without opening the log.
+            { grep -E "\[FAIL|[Ee]rror|timed out|429|403|revert" fork.log || tail -n 10 fork.log; } | head -n 10 |
+              while IFS= read -r line; do echo "::error title=fork test::${line:0:900}"; done
+          fi
+          exit "$status"
         env:
           BSC_RPC_URL: ${{ secrets.BSC_RPC_URL || 'https://bsc-dataseed.bnbchain.org' }}
 
