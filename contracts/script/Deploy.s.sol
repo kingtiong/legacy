@@ -14,23 +14,38 @@ import {CohortMarket} from "../src/CohortMarket.sol";
 ///         Nothing here touches a private key. Sign with your own keystore or hardware wallet, e.g.
 ///           forge script script/Deploy.s.sol --rpc-url bsc --account <keystore> --broadcast --verify
 ///
-///         Required environment: FEE_RECIPIENT, CURATOR (Safe multisigs), VALIDATORS (comma-separated operator
-///         addresses). On BSC mainnet the payment tokens default to USDT and USDC; elsewhere set PAYMENT_TOKEN_0/1.
+///         Required environment: FEE_RECIPIENT and CURATOR (Safe multisigs). On BSC mainnet the validators default to
+///         the launch set below and the payment tokens to USDT and USDC; elsewhere set VALIDATORS and
+///         PAYMENT_TOKEN_0/1.
 contract Deploy is Script {
-    // Launch parameters (docs/DESIGN.md). Immutable once deployed.
+    // Launch parameters for an unaudited launch (docs/DESIGN.md). Immutable once deployed.
     uint256 internal constant MIN_DEPOSIT = 0.01 ether;
-    uint256 internal constant MAX_DEPOSIT = 100 ether;
-    uint256 internal constant CAP_INITIAL = 1_000 ether;
-    uint256 internal constant CAP_GROWTH_PER_EPOCH = 500 ether;
-    uint256 internal constant CAP_REMOVED_AT_EPOCH = 24;
+    uint256 internal constant MAX_DEPOSIT = 10 ether;
+    uint256 internal constant CAP_INITIAL = 100 ether;
+    uint256 internal constant CAP_GROWTH_PER_EPOCH = 50 ether;
+    uint256 internal constant CAP_REMOVED_AT_EPOCH = 36;
 
     address internal constant BSC_USDT = 0x55d398326f99059fF775485246999027B3197955;
     address internal constant BSC_USDC = 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d;
 
+    // Launch validators on BSC mainnet: established operators, unjailed, over two years old (docs/DESIGN.md).
+    address internal constant ANKR = 0xeace91702B20bc6Ee62034eC7f5162D9a94bFbE4;
+    address internal constant FIGMENT = 0x477cB5d87144b2a6d93f72e32f5E01a459260D68;
+    address internal constant NODEREAL = 0x7d0F8A6D1C8fbF929Dcf4847A31E30d14923Fa31;
+    address internal constant THE48CLUB = 0xaACc290a1A4c89F5D7bc29913122F5982916de48;
+
     function run() external returns (LadderVault vault, CohortMarket market) {
         address feeRecipient = vm.envAddress("FEE_RECIPIENT");
         address curator = vm.envAddress("CURATOR");
-        address[] memory validators = vm.envAddress("VALIDATORS", ",");
+        address[] memory validators = block.chainid == 56 && !vm.envExists("VALIDATORS")
+            ? _launchValidators()
+            : vm.envAddress("VALIDATORS", ",");
+        if (block.chainid == 56) {
+            // Both roles are fixed into the contracts' behaviour; on mainnet they must be multisig contracts, so a
+            // typo or a plain wallet address can never be baked in.
+            require(feeRecipient.code.length != 0, "FEE_RECIPIENT must be a Safe (contract) on mainnet");
+            require(curator.code.length != 0, "CURATOR must be a Safe (contract) on mainnet");
+        }
         (address token0, address token1) = block.chainid == 56
             ? (vm.envOr("PAYMENT_TOKEN_0", BSC_USDT), vm.envOr("PAYMENT_TOKEN_1", BSC_USDC))
             : (vm.envAddress("PAYMENT_TOKEN_0"), vm.envAddress("PAYMENT_TOKEN_1"));
@@ -61,5 +76,13 @@ contract Deploy is Script {
         console2.log("LadderVault  ", address(vault));
         console2.log("CohortMarket ", address(market));
         console2.log("genesis      ", vault.GENESIS());
+    }
+
+    function _launchValidators() internal pure returns (address[] memory v) {
+        v = new address[](4);
+        v[0] = ANKR;
+        v[1] = FIGMENT;
+        v[2] = NODEREAL;
+        v[3] = THE48CLUB;
     }
 }

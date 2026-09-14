@@ -26,8 +26,13 @@ cannot pull back. See [THREAT_MODEL.md](THREAT_MODEL.md).
 - **Curator:** a Safe that can list validators (existing, not jailed, at most 16), remove ones the vault holds
   nothing with, and redelegate between listed validators up to 10% of staked BNB per 7 days. It cannot withdraw or
   send BNB anywhere. Anyone may move stake away from a jailed validator, without limit.
-- **Launch limits** (immutable, set in `script/Deploy.s.sol`): deposits of 0.01 to 100 BNB; pool capped at 1,000
-  BNB, rising 500 BNB per epoch, cap removed after 24 epochs (about two years).
+- **Launch limits** (immutable, set in `script/Deploy.s.sol`), chosen for launching **without an audit**: deposits of
+  0.01 to 10 BNB; pool capped at 100 BNB, rising 50 BNB per epoch, cap removed after 36 epochs (about three years).
+- **Launch validators:** Ankr (`0xeace…FbE4`, commission capped at 10% for ever), Figment (`0x477c…0D68`), NodeReal
+  (`0x7d0F…Fa31`) and The48Club (`0xaACc…de48`): established, publicly identifiable operators, unjailed and over two
+  years old. `script/ValidatorReport.s.sol` re-runs the comparison.
+- **Deployment safety:** on mainnet the deploy script refuses to run unless the fee recipient and curator are
+  contracts (Safes), so neither can be a mistyped or single-key address.
 - **No migration in v1.** Validator credits cannot be transferred, so moving a position means undelegating through
   StakeHub, which is exactly what a breaking StakeHub change would impair; and any list of approved migration
   targets would reintroduce a power over funds. Depositors are told plainly that a breaking BNB Chain change to
