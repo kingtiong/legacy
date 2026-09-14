@@ -26,7 +26,7 @@ export default function CalculatorPage() {
           <h2>The numbers only work if the coins are still there.</h2>
           <div className="cta">
             <Link className="btn lg" href="/story">See what happened to those who kept them</Link>
-            <Link className="btn ghost lg" href="/waitlist">Join the waitlist</Link>
+            <Link className="btn ghost lg" href="/waitlist">Get updates</Link>
           </div>
         </div>
       </section>

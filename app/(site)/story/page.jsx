@@ -110,7 +110,7 @@ export default async function StoryPage() {
             <h2>A lock makes the decision once, so you never have to make it again.</h2>
             <div className="cta">
               <Link className="btn lg" href="/how-it-works">See how it works</Link>
-              <Link className="btn ghost lg" href="/waitlist">Join the waitlist</Link>
+              <Link className="btn ghost lg" href="/waitlist">Get updates</Link>
             </div>
           </div>
         </section>

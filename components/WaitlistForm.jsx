@@ -39,9 +39,9 @@ export default function WaitlistForm() {
   if (state.status === 'done') {
     return (
       <div className="panel">
-        <h3 style={{ marginBottom: '.5rem' }}>You&rsquo;re on the list</h3>
+        <h3 style={{ marginBottom: '.5rem' }}>You&rsquo;re signed up</h3>
         <p className="muted" style={{ fontSize: '.92rem', margin: 0 }}>
-          {state.message} We&rsquo;ll write once, when the contracts are deployed and audited.
+          {state.message} We&rsquo;ll write only when something matters: audit results, DAO votes and risks you should know about.
         </p>
       </div>
     );
@@ -94,7 +94,7 @@ export default function WaitlistForm() {
       </div>
 
       <button className="btn" type="submit" disabled={state.status === 'sending'} style={{ width: '100%' }}>
-        {state.status === 'sending' ? 'Saving…' : 'Join the waitlist'}
+        {state.status === 'sending' ? 'Saving…' : 'Get updates'}
       </button>
 
       {state.status === 'error' && <p className="formmsg err">{state.message}</p>}

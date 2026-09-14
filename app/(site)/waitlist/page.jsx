@@ -1,7 +1,7 @@
 import WaitlistForm from '../../../components/WaitlistForm';
 import { LOCK_YEARS } from '../../../lib/config';
 
-export const metadata = { title: 'Join the waitlist' };
+export const metadata = { title: 'Get updates' };
 
 export default function WaitlistPage() {
   return (
@@ -9,14 +9,16 @@ export default function WaitlistPage() {
         <section id="waitlist" className="band band-cta">
           <div className="wrap waitwrap">
             <div>
-              <p className="eyebrow">Pre-launch</p>
-              <h1 className="h1-page">Be first on the ladder</h1>
+              <p className="eyebrow">Stay informed</p>
+              <h1 className="h1-page">Hear when it matters</h1>
               <p className="muted">
-                Leave your email to hear once, when the contracts are live and audited. Connecting a
-                wallet adds your address, which is how early contributors will be recognised.
+                Legacy Ladder is live on BNB Smart Chain, and its contracts have not been audited yet.
+                Leave your email and we write only when something matters: an audit result, a DAO vote
+                that needs depositors, or a risk you should know about. Connecting a wallet adds your
+                address, which is how early contributors will be recognised.
               </p>
               <div className="risks">
-                <p className="risks-head">Before you join, know this</p>
+                <p className="risks-head">Before you deposit, know this</p>
                 <div className="risk">
                   <span className="m">01</span>
                   <div><b>One asset, no floor.</b> A pension fund spreads risk and often guarantees a

@@ -28,7 +28,7 @@ export default function FaqPage() {
         <div className="wrap">
           <h2>Still thinking about it? Good.</h2>
           <div className="cta">
-            <Link className="btn lg" href="/waitlist">Join the waitlist</Link>
+            <Link className="btn lg" href="/waitlist">Get updates</Link>
             <Link className="btn ghost lg" href="/story">Read the story</Link>
           </div>
         </div>

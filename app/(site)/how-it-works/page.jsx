@@ -140,7 +140,7 @@ export default function HowItWorksPage() {
             <h2>Run your own numbers.</h2>
             <div className="cta">
               <Link className="btn lg" href="/calculator">Open the calculator</Link>
-              <Link className="btn ghost lg" href="/waitlist">Join the waitlist</Link>
+              <Link className="btn ghost lg" href="/waitlist">Get updates</Link>
             </div>
           </div>
         </section>
