@@ -1,6 +1,6 @@
 # Design (v1, BNB Smart Chain)
 
-Status: **vault and market implemented and under test. Not audited. Not deployed.**
+Status: **vault, market and DAO implemented and under test. Not audited. Not deployed.**
 
 ## Components
 
@@ -8,6 +8,8 @@ Status: **vault and market implemented and under test. Not audited. Not deployed
 |---|---|---|
 | `LadderVault` | Deposits, monthly cohort shares (ERC-1155), 70/30 split, maturity, claims, fee, staking via StakeHub | Immutable, no owner |
 | `CohortMarket` | Escrowed sale of emergency shares for USDT or USDC, with a seven-day cooling-off | Immutable, no owner, no fees |
+| `TimelockController` (OpenZeppelin) | The DAO treasury: the vault's fee recipient, executes passed proposals after 2 days | No admin; changes only through its own proposals |
+| `LadderGovernor` | Depositor voting on the treasury (OpenZeppelin Governor) | Settings changeable only by a passed vote |
 
 There is deliberately no adapter layer: pluggable adapters would let governance redirect funds depositors
 cannot pull back. See [THREAT_MODEL.md](THREAT_MODEL.md).
@@ -22,7 +24,9 @@ cannot pull back. See [THREAT_MODEL.md](THREAT_MODEL.md).
   emergency (≤30%, transferable only by the market, only before maturity). Id 2 holds fee shares, unlocked.
 - **Yield:** stays in the pool and raises the share price.
 - **Fee:** 30% of gain above a high-water mark, minted as fee shares without the receiver callback. The fee
-  recipient (a Safe) can hand the role on; nobody else can change it.
+  recipient is the DAO treasury from deployment. Only the current recipient can hand the role on (by a passed
+  vote); nobody else can change it.
+- **DAO:** depositors govern the treasury. See "How the DAO works" below.
 - **Curator:** a Safe that can list validators (existing, not jailed, at most 16), remove ones the vault holds
   nothing with, and redelegate between listed validators up to 10% of staked BNB per 7 days. It cannot withdraw or
   send BNB anywhere. Anyone may move stake away from a jailed validator, without limit.
@@ -31,8 +35,10 @@ cannot pull back. See [THREAT_MODEL.md](THREAT_MODEL.md).
 - **Launch validators:** Ankr (`0xeace…FbE4`, commission capped at 10% for ever), Figment (`0x477c…0D68`), NodeReal
   (`0x7d0F…Fa31`) and The48Club (`0xaACc…de48`): established, publicly identifiable operators, unjailed and over two
   years old. `script/ValidatorReport.s.sol` re-runs the comparison.
-- **Deployment safety:** on mainnet the deploy script refuses to run unless the fee recipient and curator are
-  contracts (Safes), so neither can be a mistyped or single-key address.
+- **Deployment safety:** on mainnet the deploy script refuses to run unless the curator is a contract (a Safe), so it
+  cannot be a mistyped or single-key address. Timelock, vault, market and governor are deployed as four consecutive
+  transactions with predicted addresses; the market and governor refuse to deploy unless wired to exactly the
+  contracts that expect them, and the script re-checks every address and role at the end.
 - **No migration in v1.** Validator credits cannot be transferred, so moving a position means undelegating through
   StakeHub, which is exactly what a breaking StakeHub change would impair; and any list of approved migration
   targets would reintroduce a power over funds. Depositors are told plainly that a breaking BNB Chain change to
@@ -72,6 +78,26 @@ receive BNB.
 **Accounting identity.** `totalAssets = balance + staked + unbonding − outstandingClaims`, and at all times
 `reservedLiquidity + unbonding ≥ outstandingClaims` and `balance ≥ reservedLiquidity`.
 
+## How the DAO works
+
+- **Who votes.** Every retirement and emergency share is one vote for whoever holds it. There is no delegation and no
+  token: a ladder is a vote. Fee shares carry no votes, so the treasury can never vote with its own income. The
+  market's escrow holds votes during a sale's cooling-off but never votes.
+- **When power is counted.** The vault records each holder's votes over time (ERC-5805 reads on a timestamp clock).
+  A proposal's votes are read at the second it was created (voting delay 0), so nobody can deposit after seeing a
+  proposal and vote with it, and shares bought through the market cannot vote twice.
+- **Rules at launch.** Proposing needs 1e21 shares (a ladder of about 1 BNB at launch). Voting runs 7 days. A proposal
+  passes with more for than against and a quorum of 10% of all votes (for plus abstain). A vote that reaches quorum
+  late runs at least 2 more days. A passed proposal waits 2 days in the timelock, then anyone may execute it.
+- **What it can do.** Anything the treasury itself can do: redeem or grant fee shares, send the BNB it holds, hand
+  the fee-recipient role to a new DAO, change its own settings. **No spending cap** (the owner's decision: a passed
+  vote can move the whole treasury).
+- **What it cannot do.** Move, redirect, pause or freeze deposits, change maturities, or stop withdrawals. The vault
+  gives no role that power; a test runs a unanimous vote to take a depositor's shares and shows it fails.
+- **Building blocks.** OpenZeppelin v5.6.1 Governor, GovernorSettings, GovernorCountingSimple, GovernorStorage (on-chain
+  proposal list, so the website needs no indexer), GovernorVotes, GovernorVotesQuorumFraction,
+  GovernorPreventLateQuorum and GovernorTimelockControl, composed without changes, plus stored descriptions.
+
 ## How a sale works (market)
 
 1. **Offer.** A buyer escrows USDT or USDC for a number of emergency shares of one cohort, open to any holder or to
@@ -96,7 +122,7 @@ constructor also refuses to deploy anywhere the vault does not expect.
 ## Still open before launch
 
 1. **Independent audits** of both contracts, findings published.
-2. **The two Safes** (fee recipient and curator) and the **launch validator set**.
+2. **The curator Safe.** Launch validators are chosen (above); fees go to the DAO treasury.
 3. **A funded bug bounty.**
 4. **Deposit, claim and market screens** in the website: built and tested end to end against a mainnet fork.
 5. **Re-evaluate the pinned OpenZeppelin release** against the latest audited version.

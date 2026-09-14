@@ -269,6 +269,19 @@ contract VaultHandler is Test {
 
     // ---------------------------------------------------------------- helpers for the invariant suite
 
+    /// @dev Everyone who can ever hold shares in this suite.
+    function holders() external view returns (address[] memory list) {
+        list = new address[](actors.length + 1);
+        for (uint256 i; i < actors.length; ++i) {
+            list[i] = actors[i];
+        }
+        list[actors.length] = market;
+    }
+
+    function cohortList() external view returns (uint256[] memory) {
+        return cohorts;
+    }
+
     function checkRetirementBalances() external {
         for (uint256 a; a < actors.length; ++a) {
             for (uint256 c; c < cohorts.length; ++c) {
@@ -382,6 +395,11 @@ contract LadderVaultInvariants is VaultTestBase {
         handler.checkRetirementBalances();
         assertEq(handler.retirementMoved(), 0);
         assertEq(handler.retirementBalanceDrift(), 0);
+    }
+
+    /// Voting power is exactly retirement plus emergency shares: per holder, in total, and in the recorded history.
+    function invariant_votesMatchShares() public {
+        _assertVotesMatchShares(vault, handler.holders(), handler.cohortList());
     }
 
     function invariant_highWaterMarkNeverFalls() public view {

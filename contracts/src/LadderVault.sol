@@ -5,6 +5,8 @@ import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {IStakeHub, IStakeCredit} from "./interfaces/IStakeHub.sol";
 
 /// @title Legacy Ladder vault (BNB Smart Chain)
@@ -20,8 +22,13 @@ import {IStakeHub, IStakeCredit} from "./interfaces/IStakeHub.sol";
 ///
 ///         Share ids: `(cohort << 2) | bucket`, bucket 0 = retirement (A), 1 = emergency (B). Id 2 holds protocol
 ///         fee shares, which have no lock.
+///
+///         Voting power: every retirement and emergency share is one vote for its holder, recorded over time so a
+///         governor can read balances as they were when a proposal started (ERC-5805 reads, timestamp clock, no
+///         delegation). Fee shares carry no votes, so the treasury that receives them cannot vote with them.
 contract LadderVault is ERC1155Supply, ReentrancyGuard {
     using Math for uint256;
+    using Checkpoints for Checkpoints.Trace208;
 
     // ---------------------------------------------------------------- constants
 
@@ -100,6 +107,9 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
 
     Claim[] internal _claims;
 
+    mapping(address account => Checkpoints.Trace208) internal _votes;
+    Checkpoints.Trace208 internal _totalVotes;
+
     // ---------------------------------------------------------------- events
 
     event Deposited(
@@ -157,6 +167,7 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
     error ValidatorStillHoldsStake();
     error RedelegateLimitExceeded(uint256 remaining);
     error SameValidator();
+    error FutureLookup(uint256 timepoint, uint48 clock);
 
     // ---------------------------------------------------------------- setup
 
@@ -224,6 +235,33 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
         uint256 epoch = currentCohort();
         if (epoch >= CAP_REMOVED_AT_EPOCH) return type(uint256).max;
         return CAP_INITIAL + epoch * CAP_GROWTH_PER_EPOCH;
+    }
+
+    // ---------------------------------------------------------------- voting power
+
+    /// @notice ERC-6372 clock: voting power is recorded against block timestamps.
+    function clock() public view returns (uint48) {
+        return SafeCast.toUint48(block.timestamp);
+    }
+
+    // solhint-disable-next-line func-name-mixedcase
+    function CLOCK_MODE() external pure returns (string memory) {
+        return "mode=timestamp";
+    }
+
+    /// @notice Retirement and emergency shares `account` holds now, across every cohort.
+    function getVotes(address account) external view returns (uint256) {
+        return _votes[account].latest();
+    }
+
+    /// @notice Voting power `account` had at `timepoint`, which must be in the past.
+    function getPastVotes(address account, uint256 timepoint) external view returns (uint256) {
+        return _votes[account].upperLookupRecent(_pastTimepoint(timepoint));
+    }
+
+    /// @notice All voting power in existence at `timepoint`: every retirement and emergency share.
+    function getPastTotalSupply(uint256 timepoint) external view returns (uint256) {
+        return _totalVotes.upperLookupRecent(_pastTimepoint(timepoint));
     }
 
     // ---------------------------------------------------------------- accounting views
@@ -504,6 +542,24 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
             }
         }
         super._update(from, to, ids, values);
+
+        uint256 moved;
+        for (uint256 i; i < ids.length; ++i) {
+            if (ids[i] != FEE_SHARES_ID) moved += values[i];
+        }
+        if (moved == 0) return;
+        uint48 now_ = clock();
+        uint208 delta = SafeCast.toUint208(moved);
+        if (from == address(0)) {
+            _totalVotes.push(now_, _totalVotes.latest() + delta);
+        } else {
+            _votes[from].push(now_, _votes[from].latest() - delta);
+        }
+        if (to == address(0)) {
+            _totalVotes.push(now_, _totalVotes.latest() - delta);
+        } else {
+            _votes[to].push(now_, _votes[to].latest() + delta);
+        }
     }
 
     /// @dev An EIP-7702 delegated EOA is controlled by its private key whatever code it delegates to, so its owner
@@ -532,6 +588,12 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
     }
 
     // ---------------------------------------------------------------- internals
+
+    function _pastTimepoint(uint256 timepoint) internal view returns (uint48) {
+        uint48 now_ = clock();
+        if (timepoint >= now_) revert FutureLookup(timepoint, now_);
+        return SafeCast.toUint48(timepoint);
+    }
 
     function _withdraw(uint256 claimId, address receiver) internal nonReentrant {
         Claim storage c = _claims[claimId];

@@ -9,6 +9,7 @@ const TABS = [
   ['/app', 'My ladder'],
   ['/app/deposit', 'Deposit'],
   ['/app/market', 'Market'],
+  ['/app/dao', 'DAO'],
 ];
 
 export default function AppNav() {

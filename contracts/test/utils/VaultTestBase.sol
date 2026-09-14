@@ -81,6 +81,29 @@ abstract contract VaultTestBase is Test {
         return MockStakeCredit(payable(hub.getValidatorCreditContract(op)));
     }
 
+    /// @dev Every holder's votes equal their retirement and emergency shares; the sum equals all non-fee shares; and
+    ///      the recorded total agrees one second later.
+    function _assertVotesMatchShares(LadderVault v, address[] memory holders, uint256[] memory cohortIds)
+        internal
+    {
+        uint256 sum;
+        for (uint256 h; h < holders.length; ++h) {
+            uint256 shares;
+            for (uint256 c; c < cohortIds.length; ++c) {
+                shares += v.balanceOf(holders[h], cohortIds[c] << 2)
+                + v.balanceOf(holders[h], (cohortIds[c] << 2) | 1);
+            }
+            assertEq(v.getVotes(holders[h]), shares, "holder votes == holder shares");
+            sum += shares;
+        }
+        uint256 voting = v.totalSupply() - v.totalSupply(v.FEE_SHARES_ID());
+        assertEq(sum, voting, "all voting shares are held by known holders");
+        uint256 snapshot = vm.snapshotState();
+        vm.warp(block.timestamp + 1);
+        assertEq(v.getPastTotalSupply(block.timestamp - 1), voting, "recorded total == voting shares");
+        vm.revertToState(snapshot);
+    }
+
     /// @dev Value of all of `who`'s shares in `cohort`, in BNB.
     function _valueOf(address who, uint256 cohort) internal view returns (uint256) {
         return vault.previewRedeem(vault.balanceOf(who, _idA(cohort)) + vault.balanceOf(who, _idB(cohort)));

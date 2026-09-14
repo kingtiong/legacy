@@ -20,6 +20,7 @@ while it waits, and receive it back month by month from year eleven.
 1. Nobody, including the team, can move, redirect, pause or freeze deposits.
 2. Withdrawals never depend on us, our website or any off-chain service.
 3. Contracts that hold funds are immutable.
+4. Protocol fees belong to a treasury that only depositors' votes can spend.
 
 ## Licence
 

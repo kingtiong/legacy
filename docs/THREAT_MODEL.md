@@ -26,6 +26,8 @@ and must not reach principal.
 | A seller can change their mind | The market's seven-day cooling-off: only the seller can cancel, and nothing can stop them doing so within it. |
 | Neither side of a sale can trap the other | Shares and payment are collected separately, each to an address the collector chooses. |
 | A sale can always be finished | If shares mature before collection they become a vault claim for the buyer; worthless shares close the sale. |
+| The DAO can only spend the treasury | The treasury holds nothing but fee shares and what they redeem into. No vault role reaches deposits; a unanimous vote to take a depositor's shares is tested and fails. |
+| Votes cannot be bought after the fact | Voting power is read at the second a proposal is created, from checkpoints the vault writes on every share movement. |
 
 ## Risks code cannot remove
 
@@ -46,6 +48,13 @@ These must be stated plainly to depositors.
 - **Stablecoin issuers.** Market payments are held in USDT or USDC. USDC on BNB Chain is an upgradeable proxy
   (verified on-chain), so its issuer could add freezing. If an issuer froze the market's address, payments escrowed
   in that token could not be released. Shares and BNB are unaffected.
+- **Governance capture of the treasury.** Anyone holding enough of the pool, alone or with others, can pass a
+  proposal if turnout is low: quorum is 10% of all votes and for-votes only need to beat against-votes. There is **no
+  spending cap**, by the owner's decision, so a captured vote can send the whole treasury anywhere after the 2-day
+  timelock, or first lower the quorum or delay by vote. Depositors' only defence is to vote against within the
+  7-day voting period. This risk is limited to fee income; deposits are out of governance's reach.
+- **Governance stalling.** If turnout never reaches quorum, nothing passes. Fee shares keep accumulating in the
+  treasury and keep their value; nothing is lost, but nothing is spent.
 - **Contract bugs.** Reduced by minimal code, tests, audits and caps. Never zero.
 
 ## If BNB Chain breaks the staking interface
@@ -100,7 +109,14 @@ Each of these is now prevented in code and covered by a test.
 - Both fuzz handlers run with `fail_on_revert`: an unexpected revert anywhere fails the suite.
 - The full ten-year lifecycle against BNB Chain's real StakeHub on a mainnet fork.
 - A complete sale settled in real USDT on a mainnet fork.
-- The deployment script simulated against mainnet with real validators, USDT and USDC.
+- The deployment script run against a mainnet fork with real validators, USDT and USDC, and refusing a plain-wallet
+  curator.
+- Voting power: unit tests (deposits, history, fee shares, claims, market escrow) and a fuzzed invariant in both
+  suites that every holder's votes equal their shares and the recorded total equals all voting shares.
+- DAO: the full proposal lifecycle, quorum and against-vote defeats, the proposal threshold, deposits after a proposal
+  carrying no weight, no double voting through the market, the late-quorum extension, the timelock refusing everyone
+  but the governor, settings changeable only by vote, handing the treasury to a new DAO, and a unanimous vote failing
+  to move a deposit. A complete vote on a mainnet fork against real staked deposits.
 
 ## Before any mainnet deposit
 

@@ -229,6 +229,19 @@ contract MarketHandler is Test {
         return true;
     }
 
+    function holders() external view returns (address[] memory list) {
+        list = new address[](actors.length + 2);
+        for (uint256 i; i < actors.length; ++i) {
+            list[i] = actors[i];
+        }
+        list[actors.length] = address(mkt);
+        list[actors.length + 1] = refuge;
+    }
+
+    function cohortList() external view returns (uint256[] memory) {
+        return cohorts;
+    }
+
     function cohortCount() external view returns (uint256) {
         return cohorts.length;
     }
@@ -287,6 +300,11 @@ contract CohortMarketInvariants is MarketTestBase {
             assertEq(vault.balanceOf(address(mkt), idB), escrowed);
             assertEq(vault.balanceOf(address(mkt), cohort << 2), 0, "never holds retirement shares");
         }
+    }
+
+    /// Votes follow shares through offers, escrow, cancellations, collections and matured claim routes.
+    function invariant_votesMatchShares() public {
+        _assertVotesMatchShares(vault, handler.holders(), handler.cohortList());
     }
 
     function invariant_sellerCanAlwaysCancelInCoolingOff() public view {

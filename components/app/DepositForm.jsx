@@ -103,6 +103,7 @@ function Form() {
           <div><dt>Emergency</dt><dd className="tnum">{bnb(toB)}</dd></div>
           <div><dt>Unlocks</dt><dd>{day(unlocks)}</dd></div>
           <div><dt>Earns</dt><dd>70% of BNB Chain staking rewards, compounding</dd></div>
+          <div><dt>Votes</dt><dd>One DAO vote per share, for as long as you hold it</dd></div>
         </dl>
         <label className="check">
           <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
