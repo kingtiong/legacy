@@ -27,21 +27,21 @@ jobs:
       - name: Mainnet fork tests
         # Public BNB Chain RPCs rate-limit cloud runners and prune state within about a minute, so a slow test can lose
         # its forked block ("missing trie node"). One suite at a time, throttled, with retries; then tests that failed
-        # are re-run (each on a fresh block), up to twice. A real failure fails every attempt and fails the job.
+        # are re-run (each on a fresh block, unthrottled so call-heavy tests finish inside the state window), up to
+        # twice. A real failure fails every attempt and fails the job.
         # Set a BSC_RPC_URL repository secret for a dedicated archive endpoint.
         shell: bash
         run: |
           set -o pipefail
-          flags=(--match-path "test/fork/*" --threads 1 --rpc-url "$BSC_RPC_URL"
-            --fork-retries 8 --fork-retry-backoff 3000 --compute-units-per-second 60)
+          flags=(--match-path "test/fork/*" --threads 1 --rpc-url "$BSC_RPC_URL" --fork-retries 8 --fork-retry-backoff 3000)
           status=0
-          forge test "${flags[@]}" 2>&1 | tee fork.log || status=$?
+          forge test "${flags[@]}" --compute-units-per-second 60 2>&1 | tee fork.log || status=$?
           for attempt in 1 2; do
             [ "$status" -eq 0 ] && break
             echo "::warning title=fork test::attempt $attempt: re-running failed fork tests on a fresh block"
             sleep 20
             status=0
-            forge test "${flags[@]}" --rerun 2>&1 | tee fork.log || status=$?
+            forge test "${flags[@]}" --no-rpc-rate-limit --rerun 2>&1 | tee fork.log || status=$?
           done
           if [ "$status" -ne 0 ]; then
             # Surface the cause as annotations (max 10), readable without opening the log.
