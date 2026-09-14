@@ -114,11 +114,12 @@ export default function HowItWorksPage() {
         <section className="band band-alt">
           <div className="wrap road-wrap">
             <div className="sec-head">
-              <p className="eyebrow">Road to launch</p>
+              <p className="eyebrow">Status</p>
               <h2>Where things stand</h2>
               <p className="muted">
-                Nothing takes a deposit until the contracts have been independently audited. No dates
-                are promised here, because good audits don&rsquo;t run to a marketing calendar.
+                {NAME} is live on BNB Smart Chain and has <b>not</b> been independently audited yet.
+                Deposit caps written into the contracts limit how much is at risk while it is young,
+                and rise on a fixed schedule nobody can speed up.
               </p>
             </div>
             <ol className="road">
