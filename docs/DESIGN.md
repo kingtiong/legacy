@@ -49,6 +49,12 @@ cannot pull back. See [THREAT_MODEL.md](THREAT_MODEL.md).
 `flush()`, which delegates idle BNB (at least StakeHub's 1 BNB minimum) to the listed, non-jailed validator
 holding the least of the vault's stake.
 
+**Staking keeper.** `scripts/keeper.mjs` calls `flush()` whenever at least 1 BNB is idle. It is a convenience, not a
+dependency: `flush()` takes no arguments and moves no value, so the keeper's wallet holds only gas money and has no
+power over deposits. If it stops, BNB waits unstaked (earning nothing) until anyone calls `flush()`, including from
+the website's "Stake it now" button or a block explorer. It signs through an encrypted Foundry keystore, simulates
+before sending, and skips rounds when gas is above its limit.
+
 **Claim.** After maturity, `requestClaim` burns shares and fixes the BNB owed. The vault tracks:
 
 - `outstandingClaims`: BNB owed to claims not yet withdrawn, excluded from the pool.
@@ -92,7 +98,7 @@ constructor also refuses to deploy anywhere the vault does not expect.
 1. **Independent audits** of both contracts, findings published.
 2. **The two Safes** (fee recipient and curator) and the **launch validator set**.
 3. **A funded bug bounty.**
-4. **Deposit and claim screens** in the website, against a testnet deployment.
+4. **Deposit, claim and market screens** in the website: built and tested end to end against a mainnet fork.
 5. **Re-evaluate the pinned OpenZeppelin release** against the latest audited version.
 
 ## Invariants enforced by the test suite

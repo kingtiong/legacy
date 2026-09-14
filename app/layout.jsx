@@ -6,7 +6,7 @@ import { NAME, TAGLINE, SITE_URL } from '../lib/config';
 // URL, so a new query string is what makes them fetch the new image.
 const OG_VERSION = 2;
 const DESCRIPTION =
-  'Contribute monthly, lock each deposit for ten years, and receive monthly from year eleven. A time-locked savings protocol on BNB Smart Chain and Ethereum.';
+  'Deposit BNB every month and lock each deposit for ten years while it earns staking rewards. From year eleven, each month’s deposit unlocks in turn. A time-locked savings protocol on BNB Smart Chain.';
 const OG_IMAGE = {
   url: `${SITE_URL}/og.png?v=${OG_VERSION}`,
   width: 1200,
