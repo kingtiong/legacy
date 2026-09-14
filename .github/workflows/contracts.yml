@@ -25,24 +25,24 @@ jobs:
       - name: Unit, regression and invariant tests
         run: forge test --no-match-path "test/fork/*"
       - name: Mainnet fork tests
-        # Public BNB Chain RPCs rate-limit cloud runners and prune state within about a minute, so a slow test can lose
-        # its forked block ("missing trie node"). One suite at a time, throttled, with retries; then tests that failed
-        # are re-run (each on a fresh block, unthrottled so call-heavy tests finish inside the state window), up to
-        # twice. A real failure fails every attempt and fails the job.
-        # Set a BSC_RPC_URL repository secret for a dedicated archive endpoint.
+        # The fast public BNB Chain RPC prunes state within about a minute, and call-heavy tests can lose their forked
+        # block on a slow runner ("missing trie node"). So: one pass there, then any failed tests re-run against an
+        # archive RPC, which keeps old state but is slow. A real failure fails on the archive RPC too, and fails the job.
+        # Set BSC_RPC_URL / BSC_ARCHIVE_RPC_URL repository secrets for dedicated endpoints.
+        timeout-minutes: 60
         shell: bash
         run: |
           set -o pipefail
-          flags=(--match-path "test/fork/*" --threads 1 --rpc-url "$BSC_RPC_URL" --fork-retries 8 --fork-retry-backoff 3000)
+          flags=(--match-path "test/fork/*" --threads 1 --fork-retries 8 --fork-retry-backoff 3000)
           status=0
-          forge test "${flags[@]}" --compute-units-per-second 60 2>&1 | tee fork.log || status=$?
-          for attempt in 1 2; do
-            [ "$status" -eq 0 ] && break
-            echo "::warning title=fork test::attempt $attempt: re-running failed fork tests on a fresh block"
-            sleep 20
+          BSC_RPC_URL="$FAST_RPC" forge test "${flags[@]}" --rpc-url "$FAST_RPC" --compute-units-per-second 60 \
+            2>&1 | tee fork.log || status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=fork test::re-running failed fork tests against the archive RPC"
             status=0
-            forge test "${flags[@]}" --no-rpc-rate-limit --rerun 2>&1 | tee fork.log || status=$?
-          done
+            BSC_RPC_URL="$ARCHIVE_RPC" forge test "${flags[@]}" --rpc-url "$ARCHIVE_RPC" --compute-units-per-second 60 \
+              --rerun 2>&1 | tee fork.log || status=$?
+          fi
           if [ "$status" -ne 0 ]; then
             # Surface the cause as annotations (max 10), readable without opening the log.
             { grep -E "\[FAIL|[Ee]rror|timed out|429|403|revert" fork.log || tail -n 10 fork.log; } | head -n 10 |
@@ -50,7 +50,8 @@ jobs:
           fi
           exit "$status"
         env:
-          BSC_RPC_URL: ${{ secrets.BSC_RPC_URL || 'https://bsc-dataseed.bnbchain.org' }}
+          FAST_RPC: ${{ secrets.BSC_RPC_URL || 'https://bsc-dataseed.bnbchain.org' }}
+          ARCHIVE_RPC: ${{ secrets.BSC_ARCHIVE_RPC_URL || 'https://api.zan.top/bsc-mainnet' }}
 
   heavy-fuzzing:
     if: github.event_name == 'schedule'
