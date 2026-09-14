@@ -1,6 +1,6 @@
 # Design (v1, BNB Smart Chain)
 
-Status: **vault, market and DAO implemented and under test. Not audited. Not deployed.**
+Status: **deployed to BNB Smart Chain mainnet on 2026-09-14 ([addresses](../deployments/bsc-mainnet.md)). Not audited.**
 
 ## Components
 

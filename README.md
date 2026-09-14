@@ -3,8 +3,9 @@
 A savings protocol for people paid in crypto. Lock a slice of what you earn each month for ten years, staked
 while it waits, and receive it back month by month from year eleven.
 
-> **Pre-launch.** Nothing is deployed to mainnet and nothing has been audited. Do not send funds to any address
-> claiming to be Legacy Ladder.
+> **Live on BNB Smart Chain, not audited.** The only official contracts are listed in
+> [deployments/bsc-mainnet.md](deployments/bsc-mainnet.md). Do not send funds to any other address claiming to be
+> Legacy Ladder.
 
 ## Repository
 
