@@ -27,7 +27,7 @@ cannot pull back. See [THREAT_MODEL.md](THREAT_MODEL.md).
   recipient is the DAO treasury from deployment. Only the current recipient can hand the role on (by a passed
   vote); nobody else can change it.
 - **DAO:** depositors govern the treasury. See "How the DAO works" below.
-- **Curator:** a Safe that can list validators (existing, not jailed, at most 16), remove ones the vault holds
+- **Curator:** the DAO treasury (so validator changes happen only by depositor vote). It can list validators (existing, not jailed, at most 16), remove ones the vault holds
   nothing with, and redelegate between listed validators up to 10% of staked BNB per 7 days. It cannot withdraw or
   send BNB anywhere. Anyone may move stake away from a jailed validator, without limit.
 - **Launch limits** (immutable, set in `script/Deploy.s.sol`), chosen for launching **without an audit**: deposits of
@@ -35,8 +35,9 @@ cannot pull back. See [THREAT_MODEL.md](THREAT_MODEL.md).
 - **Launch validators:** Ankr (`0xeace…FbE4`, commission capped at 10% for ever), Figment (`0x477c…0D68`), NodeReal
   (`0x7d0F…Fa31`) and The48Club (`0xaACc…de48`): established, publicly identifiable operators, unjailed and over two
   years old. `script/ValidatorReport.s.sol` re-runs the comparison.
-- **Deployment safety:** on mainnet the deploy script refuses to run unless the curator is a contract (a Safe), so it
-  cannot be a mistyped or single-key address. Timelock, vault, market and governor are deployed as four consecutive
+- **No team roles:** the DAO treasury is both fee recipient and curator from deployment. No team wallet or multisig
+  holds any role in any contract.
+- **Deployment safety:** timelock, vault, market and governor are deployed as four consecutive
   transactions with predicted addresses; the market and governor refuse to deploy unless wired to exactly the
   contracts that expect them, and the script re-checks every address and role at the end.
 - **No migration in v1.** Validator credits cannot be transferred, so moving a position means undelegating through
@@ -89,8 +90,9 @@ receive BNB.
 - **Rules at launch.** Proposing needs 1e21 shares (a ladder of about 1 BNB at launch). Voting runs 7 days. A proposal
   passes with more for than against and a quorum of 10% of all votes (for plus abstain). A vote that reaches quorum
   late runs at least 2 more days. A passed proposal waits 2 days in the timelock, then anyone may execute it.
-- **What it can do.** Anything the treasury itself can do: redeem or grant fee shares, send the BNB it holds, hand
-  the fee-recipient role to a new DAO, change its own settings. **No spending cap** (the owner's decision: a passed
+- **What it can do.** Anything the treasury itself can do: redeem or grant fee shares, send the BNB it holds, list or
+  remove validators and redelegate between them (still limited to 10% of stake per 7 days), hand either role to a new
+  address, change its own settings. **No spending cap** (the owner's decision: a passed
   vote can move the whole treasury).
 - **What it cannot do.** Move, redirect, pause or freeze deposits, change maturities, or stop withdrawals. The vault
   gives no role that power; a test runs a unanimous vote to take a depositor's shares and shows it fails.
@@ -122,7 +124,7 @@ constructor also refuses to deploy anywhere the vault does not expect.
 ## Still open before launch
 
 1. **Independent audits** of both contracts, findings published.
-2. **The curator Safe.** Launch validators are chosen (above); fees go to the DAO treasury.
+2. ~~Roles~~: decided. The DAO treasury is fee recipient and curator; launch validators are chosen (above).
 3. **A funded bug bounty.**
 4. **Deposit, claim and market screens** in the website: built and tested end to end against a mainnet fork.
 5. **Re-evaluate the pinned OpenZeppelin release** against the latest audited version.

@@ -11,10 +11,11 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 /// @title Deploys the DAO treasury, vault, market and DAO governor
 /// @notice Four deployments, in this order, as the deployer's next four transactions (nothing may be sent from that
 ///         address in between, because later addresses are predicted from its nonce):
-///           1. TimelockController: the DAO treasury and the vault's fee recipient. Its only proposer and canceller
+///           1. TimelockController: the DAO treasury, and the vault's fee recipient and curator. Its only proposer and canceller
 ///              is the governor (predicted address), anyone may execute a passed proposal after the delay, and it has
 ///              no admin: its settings change only through its own proposals.
-///           2. LadderVault, with the timelock as fee recipient and the predicted market address.
+///           2. LadderVault, with the timelock as fee recipient and curator, and the predicted market address. No team
+///              wallet or multisig holds any role: depositors govern both through the DAO.
 ///           3. CohortMarket, which refuses to deploy unless the vault expects it.
 ///           4. LadderGovernor, which refuses to deploy unless the timelock is the vault's fee recipient and the
 ///              governor is the timelock's proposer.
@@ -23,8 +24,8 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 ///         Nothing here touches a private key. Sign with your own keystore or hardware wallet, e.g.
 ///           forge script script/Deploy.s.sol --rpc-url bsc --account <keystore> --broadcast --verify
 ///
-///         Required environment: CURATOR (a Safe multisig). On BSC mainnet the validators default to the launch set
-///         below and the payment tokens to USDT and USDC; elsewhere set VALIDATORS and PAYMENT_TOKEN_0/1.
+///         Environment: none on BSC mainnet, where the validators default to the launch set below and the payment
+///         tokens to USDT and USDC; elsewhere set VALIDATORS and PAYMENT_TOKEN_0/1.
 contract Deploy is Script {
     // Launch parameters for an unaudited launch (docs/DESIGN.md). Immutable once deployed.
     uint256 internal constant MIN_DEPOSIT = 0.01 ether;
@@ -48,14 +49,9 @@ contract Deploy is Script {
         external
         returns (TimelockController timelock, LadderVault vault, CohortMarket market, LadderGovernor governor)
     {
-        address curator = vm.envAddress("CURATOR");
         address[] memory validators = block.chainid == 56 && !vm.envExists("VALIDATORS")
             ? _launchValidators()
             : vm.envAddress("VALIDATORS", ",");
-        if (block.chainid == 56) {
-            // On mainnet the curator must be a multisig contract, so a typo or a plain wallet address is refused.
-            require(curator.code.length != 0, "CURATOR must be a Safe (contract) on mainnet");
-        }
         (address token0, address token1) = block.chainid == 56
             ? (vm.envOr("PAYMENT_TOKEN_0", BSC_USDT), vm.envOr("PAYMENT_TOKEN_1", BSC_USDC))
             : (vm.envAddress("PAYMENT_TOKEN_0"), vm.envAddress("PAYMENT_TOKEN_1"));
@@ -67,7 +63,7 @@ contract Deploy is Script {
         address predictedGovernor = vm.computeCreateAddress(deployer, nonce + 3);
 
         timelock = _deployTimelock(predictedGovernor);
-        vault = _deployVault(predictedMarket, address(timelock), curator, validators);
+        vault = _deployVault(predictedMarket, address(timelock), validators);
         market = new CohortMarket(vault, IERC20(token0), IERC20(token1));
         governor = new LadderGovernor(vault, timelock);
         vm.stopBroadcast();
@@ -78,7 +74,7 @@ contract Deploy is Script {
         );
         require(address(market) == predictedMarket, "market not at the address the vault expects");
         require(address(governor) == predictedGovernor, "governor not at the address the timelock expects");
-        _check(deployer, curator, timelock, vault, market, governor);
+        _check(deployer, timelock, vault, market, governor);
 
         console2.log("DAO treasury ", address(timelock));
         console2.log("LadderVault  ", address(vault));
@@ -95,7 +91,7 @@ contract Deploy is Script {
         return new TimelockController(TIMELOCK_DELAY, proposers, executors, address(0));
     }
 
-    function _deployVault(address market, address treasury, address curator, address[] memory validators)
+    function _deployVault(address market, address treasury, address[] memory validators)
         internal
         returns (LadderVault)
     {
@@ -103,7 +99,7 @@ contract Deploy is Script {
             LadderVault.Config({
                 market: market,
                 feeRecipient: treasury,
-                curator: curator,
+                curator: treasury,
                 validators: validators,
                 minDeposit: MIN_DEPOSIT,
                 maxDeposit: MAX_DEPOSIT,
@@ -116,7 +112,6 @@ contract Deploy is Script {
 
     function _check(
         address deployer,
-        address curator,
         TimelockController timelock,
         LadderVault vault,
         CohortMarket market,
@@ -125,7 +120,7 @@ contract Deploy is Script {
         require(vault.MARKET() == address(market), "vault market mismatch");
         require(address(market.VAULT()) == address(vault), "market vault mismatch");
         require(vault.feeRecipient() == address(timelock), "fee recipient is not the DAO treasury");
-        require(vault.curator() == curator, "curator mismatch");
+        require(vault.curator() == address(timelock), "curator is not the DAO treasury");
         require(address(governor.timelock()) == address(timelock), "governor timelock mismatch");
         require(address(governor.token()) == address(vault), "governor votes mismatch");
         require(timelock.hasRole(timelock.PROPOSER_ROLE(), address(governor)), "governor cannot propose");

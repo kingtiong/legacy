@@ -21,15 +21,12 @@ contract DeployForkTest is Test {
     CohortMarket internal market;
     LadderGovernor internal governor;
 
-    address internal curatorSafe =
-        address(uint160(uint256(keccak256("legacy-ladder/fork-test/curator-safe"))));
     address internal alice = address(uint160(uint256(keccak256("legacy-ladder/fork-test/alice"))));
     address internal bob = address(uint160(uint256(keccak256("legacy-ladder/fork-test/bob"))));
     address internal grantee = address(uint160(uint256(keccak256("legacy-ladder/fork-test/grantee"))));
 
     function setUp() public {
         vm.createSelectFork(vm.envOr("BSC_RPC_URL", string("https://bsc-dataseed.bnbchain.org")));
-        vm.etch(curatorSafe, hex"00");
 
         uint256 nonce = vm.getNonce(address(this));
         address predictedMarket = vm.computeCreateAddress(address(this), nonce + 2);
@@ -48,7 +45,7 @@ contract DeployForkTest is Test {
             LadderVault.Config({
                 market: predictedMarket,
                 feeRecipient: address(timelock),
-                curator: curatorSafe,
+                curator: address(timelock),
                 validators: launchValidators,
                 minDeposit: 0.01 ether,
                 maxDeposit: 10 ether,
@@ -74,7 +71,7 @@ contract DeployForkTest is Test {
 
     function test_launchConfiguration() public view {
         assertEq(vault.feeRecipient(), address(timelock));
-        assertEq(vault.curator(), curatorSafe);
+        assertEq(vault.curator(), address(timelock));
         assertEq(vault.MARKET(), address(market));
         assertEq(vault.MAX_DEPOSIT(), 10 ether);
         assertEq(vault.validators().length, 4);

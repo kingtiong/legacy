@@ -9,7 +9,8 @@ import {LadderGovernor} from "../../src/LadderGovernor.sol";
 import {MockStablecoin} from "../mocks/MockStablecoin.sol";
 import {VaultTestBase} from "./VaultTestBase.sol";
 
-/// @dev Deploys the full stack in the deploy script's order: timelock (DAO treasury), vault, market, governor, with
+/// @dev Deploys the full stack in the deploy script's order: timelock (DAO treasury, fee recipient and curator), vault,
+///      market, governor, with
 ///      the market and governor addresses predicted from the nonce.
 abstract contract DaoTestBase is VaultTestBase {
     uint256 internal constant TIMELOCK_DELAY = 2 days;
@@ -45,7 +46,7 @@ abstract contract DaoTestBase is VaultTestBase {
             LadderVault.Config({
                 market: predictedMarket,
                 feeRecipient: address(timelock),
-                curator: curator,
+                curator: address(timelock),
                 validators: vals,
                 minDeposit: MIN_DEPOSIT,
                 maxDeposit: MAX_DEPOSIT,
@@ -60,6 +61,7 @@ abstract contract DaoTestBase is VaultTestBase {
         assertEq(address(governor), predictedGovernor);
         market = address(mkt);
         feeRecipient = address(timelock);
+        curator = address(timelock);
 
         vm.deal(carol, 10_000 ether);
     }

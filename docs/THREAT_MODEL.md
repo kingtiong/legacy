@@ -52,7 +52,12 @@ These must be stated plainly to depositors.
   proposal if turnout is low: quorum is 10% of all votes and for-votes only need to beat against-votes. There is **no
   spending cap**, by the owner's decision, so a captured vote can send the whole treasury anywhere after the 2-day
   timelock, or first lower the quorum or delay by vote. Depositors' only defence is to vote against within the
-  7-day voting period. This risk is limited to fee income; deposits are out of governance's reach.
+  7-day voting period. A captured DAO is also the curator, so it could list poor validators and move stake to them,
+  at most 10% of staked BNB per 7 days: rewards could suffer, principal could not be taken. Deposits are out of
+  governance's reach.
+- **Slow validator changes.** The curator is the DAO, so routine validator changes take at least 9 days (7 days of
+  voting and a 2-day timelock). The urgent case, a jailed validator, needs no vote: anyone may move stake away from
+  it immediately.
 - **Governance stalling.** If turnout never reaches quorum, nothing passes. Fee shares keep accumulating in the
   treasury and keep their value; nothing is lost, but nothing is spent.
 - **Contract bugs.** Reduced by minimal code, tests, audits and caps. Never zero.

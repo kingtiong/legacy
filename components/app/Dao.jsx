@@ -23,9 +23,9 @@ export default function Dao() {
         <p className="eyebrow">DAO</p>
         <h1 className="h1-page">Depositors decide what the fees are for</h1>
         <p className="lead">
-          The protocol’s 30% of staking rewards goes to a treasury only depositors can direct. Your vote is your
-          ladder: one vote per share, counted as it stood when each proposal was made. No vote can ever touch
-          anyone’s deposit.
+          The protocol’s 30% of staking rewards goes to a treasury only depositors can direct, and depositors
+          choose the validators too. Your vote is your ladder: one vote per share, counted as it stood when each
+          proposal was made. No vote can ever touch anyone’s deposit.
         </p>
       </header>
       <WalletGate>
@@ -118,7 +118,7 @@ function Proposal({ p, now, dao, onDone }) {
               <> worth about {bnb((a.shares * dao.feeValue) / dao.feeShares)} today</>
             )}
             {a.to && (
-              <> to <a href={`${EXPLORER}/address/${a.to}`} target="_blank" rel="noreferrer">{shortAddress(a.to)}</a></>
+              <>{a.prep === ':' ? ': ' : ' to '}<a href={`${EXPLORER}/address/${a.to}`} target="_blank" rel="noreferrer">{shortAddress(a.to)}</a></>
             )}
           </li>
         ))}

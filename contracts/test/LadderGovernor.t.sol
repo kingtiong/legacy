@@ -8,6 +8,7 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 import {LadderVault} from "../src/LadderVault.sol";
 import {LadderGovernor} from "../src/LadderGovernor.sol";
 import {DaoTestBase} from "./utils/DaoTestBase.sol";
+import {MockStakeCredit} from "./mocks/MockStakeHub.sol";
 
 contract VaultVotesTest is DaoTestBase {
     function test_deposit_givesOneVotePerShare() public {
@@ -105,6 +106,7 @@ contract LadderGovernorTest is DaoTestBase {
 
     function test_deploy_wiring() public view {
         assertEq(vault.feeRecipient(), address(timelock));
+        assertEq(vault.curator(), address(timelock), "validators are managed by depositor vote");
         assertEq(address(governor.timelock()), address(timelock));
         assertEq(address(governor.token()), address(vault));
         assertTrue(timelock.hasRole(timelock.PROPOSER_ROLE(), address(governor)));
@@ -331,6 +333,44 @@ contract LadderGovernorTest is DaoTestBase {
         vm.prank(next);
         vault.acceptFeeRecipient();
         assertEq(vault.feeRecipient(), next);
+    }
+
+    function test_curator_addValidatorByVote() public {
+        _deposit(alice, 10 ether);
+        vm.warp(block.timestamp + 1);
+        address v4 = makeAddr("validator4");
+        hub.createValidator{value: 2_000 ether}(v4);
+
+        vm.expectRevert(LadderVault.NotCurator.selector);
+        vault.addValidator(v4); // nobody outside the DAO
+
+        uint256 id =
+            _propose(alice, address(vault), 0, abi.encodeCall(vault.addValidator, (v4)), "List validator 4");
+        _pass(id, _one(alice));
+        _queueAndExecute(id);
+        assertTrue(vault.isValidator(v4));
+    }
+
+    function test_curator_redelegateByVoteStaysRateLimited() public {
+        _deposit(alice, 10 ether);
+        vault.flush();
+        vm.warp(block.timestamp + 1);
+        address from = vault.validators()[0];
+        MockStakeCredit credit = _credit(from);
+        if (credit.balanceOf(address(vault)) == 0) from = vault.validators()[1];
+        credit = _credit(from);
+        address to = from == v1 ? v2 : v1;
+        uint256 all = credit.balanceOf(address(vault));
+
+        // A vote to move all stake at once passes, but the vault's 10% per 7 days limit still applies on execution.
+        uint256 id =
+            _propose(alice, address(vault), 0, abi.encodeCall(vault.redelegate, (from, to, all)), "Move all");
+        _pass(id, _one(alice));
+        governor.queue(id);
+        vm.warp(block.timestamp + TIMELOCK_DELAY);
+        vm.expectPartialRevert(LadderVault.RedelegateLimitExceeded.selector);
+        governor.execute(id);
+        assertEq(credit.balanceOf(address(vault)), all, "stake did not move");
     }
 
     function test_settingsChangeOnlyByVote() public {
