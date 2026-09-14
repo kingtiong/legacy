@@ -410,6 +410,9 @@ contract LadderVaultInvariants is VaultTestBase {
         uint256 midRunUnbonded = handler.unbondedClaims();
         uint256 midRunWithdrawals = handler.withdrawals();
         assertTrue(handler.drainEverything(), "someone could not withdraw");
+        // Path-coverage notes are a local diagnostic: opt in with COVERAGE_LOG=true.
+        if (!vm.envOr("COVERAGE_LOG", false)) return;
+        vm.createDir("cache/coverage", true);
         vm.writeLine(
             "cache/coverage/invariants.log",
             string.concat(

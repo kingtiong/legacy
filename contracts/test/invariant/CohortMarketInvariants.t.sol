@@ -316,6 +316,9 @@ contract CohortMarketInvariants is MarketTestBase {
             uint256 left = vault.balanceOf(address(mkt), (handler.cohorts(c) << 2) | 1);
             assertEq(vault.previewRedeem(left), 0, "shares of any value left behind");
         }
+        // Path-coverage notes are a local diagnostic: opt in with COVERAGE_LOG=true.
+        if (!vm.envOr("COVERAGE_LOG", false)) return;
+        vm.createDir("cache/coverage", true);
         vm.writeLine(
             "cache/coverage/market.log",
             string.concat(
