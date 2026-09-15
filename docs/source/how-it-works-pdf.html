@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Legacy Ladder: How the System Works</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm; }
+  :root {
+    --ink: #1b2422; --soft: #4d5a56; --faint: #7c8884; --rule: #d9dfdc; --wash: #f4f6f5;
+    --teal: #2f7d70; --teal-wash: #e7f2ef; --brass: #a8761c; --brass-wash: #fbf3e2; --warn: #b4502b; --warn-wash: #fbece6;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Helvetica Neue", Arial, sans-serif; font-size: 10.2pt; line-height: 1.5; color: var(--ink); }
+  h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; margin: 0; letter-spacing: -.01em; }
+  h1 { font-size: 26pt; line-height: 1.1; }
+  h2 { font-size: 15pt; margin: 14pt 0 7pt; padding-top: 8pt; border-top: 1.5px solid var(--ink); page-break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 0 0 4pt; }
+  p { margin: 0 0 7pt; }
+  .eyebrow { font-size: 7.5pt; letter-spacing: .16em; text-transform: uppercase; color: var(--brass); margin-bottom: 6pt; font-weight: 700; }
+  .lead { font-size: 11.5pt; color: var(--soft); max-width: 150mm; margin-top: 8pt; }
+  .meta { font-size: 8.5pt; color: var(--faint); margin-top: 10pt; }
+  .banner { margin-top: 12pt; border: 1px solid #e8c9b9; background: var(--warn-wash); color: #6d2e17; padding: 7pt 10pt; border-radius: 4pt; font-size: 9pt; }
+  .mono { font-family: "Courier New", monospace; font-size: 8.6pt; word-break: break-all; }
+  figure { margin: 10pt 0 4pt; page-break-inside: avoid; }
+  figcaption { font-size: 8pt; color: var(--faint); text-align: center; margin-top: 4pt; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+  .card { border: 1px solid var(--rule); border-radius: 5pt; padding: 9pt 10pt; page-break-inside: avoid; background: #fff; }
+  .card .num { display: inline-block; width: 16pt; height: 16pt; line-height: 16pt; text-align: center; border-radius: 50%; background: var(--teal); color: #fff; font-size: 8.5pt; font-weight: 700; margin-right: 5pt; }
+  .card .role { color: var(--soft); font-size: 8.8pt; margin: 0 0 5pt; }
+  .card .addr { background: var(--wash); border-radius: 3pt; padding: 3pt 5pt; margin: 0 0 6pt; }
+  .card ul { margin: 0; padding-left: 12pt; }
+  .card li { margin-bottom: 2.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0; page-break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; padding: 4pt 7pt; border-bottom: 1px solid var(--rule); }
+  th { font-size: 7.5pt; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); border-bottom: 1.5px solid var(--ink); }
+  td:first-child { font-weight: 700; white-space: nowrap; width: 34%; }
+  .never { border: 1.5px solid var(--teal); background: var(--teal-wash); border-radius: 5pt; padding: 9pt 12pt; page-break-inside: avoid; }
+  .never ul { margin: 4pt 0 0; padding-left: 14pt; }
+  .never li { margin-bottom: 2pt; font-weight: 600; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8pt; }
+  .box { border: 1px solid var(--rule); border-radius: 5pt; padding: 8pt 10pt; page-break-inside: avoid; }
+  .box h3 { font-size: 10.5pt; }
+  .small { font-size: 8.8pt; color: var(--soft); }
+  .footer { margin-top: 10pt; padding-top: 6pt; border-top: 1px solid var(--rule); font-size: 8pt; color: var(--faint); }
+  .pb { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">Legacy Ladder · BNB Smart Chain</div>
+<h1>How the system works</h1>
+<p class="lead">A plain-language guide to what has been built: the four smart contracts, what each one does, how they are connected, and the website and helper around them.</p>
+<p class="meta">Status as of 15 September 2026 · Deployed 14 September 2026 · Source: github.com/kingtiong/legacy (commit 6e8250a)</p>
+<div class="banner"><b>Live, not audited.</b> The contracts are open source and verified on Sourcify, but no independent auditor has reviewed them yet. Deposit caps limit how much is at risk while the protocol is young.</div>
+
+<h2>The big picture</h2>
+<figure>
+<svg viewBox="0 0 720 420" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica Neue, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4d5a56"/></marker>
+    <marker id="t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f7d70"/></marker>
+  </defs>
+  <!-- user -->
+  <rect x="250" y="8" width="220" height="44" rx="22" fill="#1b2422"/>
+  <text x="360" y="27" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">YOU</text>
+  <text x="360" y="43" text-anchor="middle" fill="#cfd8d5" font-size="10">depositor's own wallet</text>
+  <line x1="360" y1="52" x2="360" y2="104" stroke="#4d5a56" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="370" y="82" fill="#4d5a56" font-size="10">deposit · claim</text>
+
+  <!-- vault -->
+  <rect x="200" y="106" width="320" height="104" rx="10" fill="#e7f2ef" stroke="#2f7d70" stroke-width="2"/>
+  <text x="360" y="130" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2422">1 · VAULT</text>
+  <text x="360" y="147" text-anchor="middle" font-size="10.5" fill="#1b2422">the savings box</text>
+  <text x="360" y="168" text-anchor="middle" font-size="10" fill="#4d5a56">holds the BNB · locks each month for 10 years</text>
+  <text x="360" y="183" text-anchor="middle" font-size="10" fill="#4d5a56">gives shares = your receipt and your votes</text>
+  <text x="360" y="198" text-anchor="middle" font-size="10" fill="#4d5a56">70% retirement (never moves) · 30% emergency</text>
+
+  <!-- validators -->
+  <rect x="580" y="118" width="130" height="80" rx="8" fill="#fff" stroke="#7c8884" stroke-dasharray="4 3"/>
+  <text x="645" y="140" text-anchor="middle" font-size="11" font-weight="700" fill="#1b2422">BNB Chain</text>
+  <text x="645" y="154" text-anchor="middle" font-size="11" font-weight="700" fill="#1b2422">validators</text>
+  <text x="645" y="171" text-anchor="middle" font-size="9" fill="#4d5a56">Ankr · Figment</text>
+  <text x="645" y="184" text-anchor="middle" font-size="9" fill="#4d5a56">NodeReal · The48Club</text>
+  <line x1="520" y1="150" x2="578" y2="150" stroke="#2f7d70" stroke-width="1.6" marker-end="url(#t)"/>
+  <line x1="578" y1="168" x2="520" y2="168" stroke="#2f7d70" stroke-width="1.6" marker-end="url(#t)"/>
+  <text x="549" y="143" text-anchor="middle" font-size="9" fill="#2f7d70">stake</text>
+  <text x="549" y="182" text-anchor="middle" font-size="9" fill="#2f7d70">rewards</text>
+
+  <!-- keeper -->
+  <rect x="10" y="126" width="140" height="64" rx="8" fill="#fff" stroke="#7c8884" stroke-dasharray="4 3"/>
+  <text x="80" y="148" text-anchor="middle" font-size="11" font-weight="700" fill="#1b2422">Keeper</text>
+  <text x="80" y="163" text-anchor="middle" font-size="9" fill="#4d5a56">presses "stake" when</text>
+  <text x="80" y="176" text-anchor="middle" font-size="9" fill="#4d5a56">≥ 1 BNB is waiting</text>
+  <line x1="150" y1="158" x2="198" y2="158" stroke="#7c8884" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#a)"/>
+
+  <!-- market -->
+  <rect x="10" y="280" width="200" height="124" rx="10" fill="#fff" stroke="#1b2422" stroke-width="1.6"/>
+  <text x="110" y="304" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2422">2 · MARKET</text>
+  <text x="110" y="321" text-anchor="middle" font-size="10.5" fill="#1b2422">the emergency exit</text>
+  <text x="110" y="342" text-anchor="middle" font-size="9.5" fill="#4d5a56">sell emergency shares to</text>
+  <text x="110" y="356" text-anchor="middle" font-size="9.5" fill="#4d5a56">another person for USDT/USDC</text>
+  <text x="110" y="376" text-anchor="middle" font-size="9.5" fill="#4d5a56">7-day cooling-off to cancel</text>
+  <text x="110" y="390" text-anchor="middle" font-size="9.5" fill="#4d5a56">no owner · no fees</text>
+  <path d="M250,210 C230,240 150,250 120,278" fill="none" stroke="#4d5a56" stroke-width="1.6" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text x="20" y="232" font-size="9" fill="#4d5a56">only the market may</text>
+  <text x="20" y="244" font-size="9" fill="#4d5a56">move emergency shares</text>
+
+  <!-- treasury -->
+  <rect x="260" y="280" width="200" height="124" rx="10" fill="#fbf3e2" stroke="#a8761c" stroke-width="1.8"/>
+  <text x="360" y="304" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2422">3 · TREASURY</text>
+  <text x="360" y="321" text-anchor="middle" font-size="10.5" fill="#1b2422">the DAO's wallet</text>
+  <text x="360" y="342" text-anchor="middle" font-size="9.5" fill="#4d5a56">receives 30% of rewards</text>
+  <text x="360" y="356" text-anchor="middle" font-size="9.5" fill="#4d5a56">chooses validators (curator)</text>
+  <text x="360" y="376" text-anchor="middle" font-size="9.5" fill="#4d5a56">acts only on passed votes,</text>
+  <text x="360" y="390" text-anchor="middle" font-size="9.5" fill="#4d5a56">after a 2-day wait · no admin</text>
+  <line x1="345" y1="212" x2="345" y2="278" stroke="#a8761c" stroke-width="1.6" marker-end="url(#a)"/>
+  <line x1="375" y1="278" x2="375" y2="212" stroke="#a8761c" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="338" y="243" text-anchor="end" font-size="9" fill="#a8761c">30% fees</text>
+  <text x="382" y="243" font-size="9" fill="#a8761c">carries out votes</text>
+
+  <!-- governor -->
+  <rect x="510" y="280" width="200" height="124" rx="10" fill="#fff" stroke="#1b2422" stroke-width="1.6"/>
+  <text x="610" y="304" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2422">4 · GOVERNOR</text>
+  <text x="610" y="321" text-anchor="middle" font-size="10.5" fill="#1b2422">the voting booth</text>
+  <text x="610" y="342" text-anchor="middle" font-size="9.5" fill="#4d5a56">1 share = 1 vote</text>
+  <text x="610" y="356" text-anchor="middle" font-size="9.5" fill="#4d5a56">7-day vote · 10% quorum</text>
+  <text x="610" y="376" text-anchor="middle" font-size="9.5" fill="#4d5a56">passed votes go to</text>
+  <text x="610" y="390" text-anchor="middle" font-size="9.5" fill="#4d5a56">the treasury</text>
+  <line x1="508" y1="342" x2="462" y2="342" stroke="#1b2422" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="485" y="334" text-anchor="middle" font-size="9" fill="#1b2422">orders</text>
+  <path d="M600,278 C590,240 540,222 522,206" fill="none" stroke="#4d5a56" stroke-width="1.6" marker-end="url(#a)"/>
+  <text x="600" y="240" font-size="9" fill="#4d5a56">reads your</text>
+  <text x="600" y="252" font-size="9" fill="#4d5a56">votes</text>
+</svg>
+<figcaption>Solid boxes are smart contracts on BNB Smart Chain. Dashed boxes are outside the contracts.</figcaption>
+</figure>
+
+<h2>The four smart contracts</h2>
+<div class="cards">
+  <div class="card">
+    <h3><span class="num">1</span>Vault: the savings box</h3>
+    <p class="role">Holds everyone's BNB, locks it, stakes it, pays it back.</p>
+    <p class="addr mono">0x0C09EC94aDb65314448562B028FC5AfDBa421742</p>
+    <ul>
+      <li>Deposit 0.01 to 10 BNB; it joins this month's "rung".</li>
+      <li>At least 70% goes to <b>retirement</b> (can never be sold or moved); up to 30% to <b>emergency</b> (sellable only through the market).</li>
+      <li>You receive <b>shares</b>: your receipt, growing in value as rewards come in.</li>
+      <li>BNB is staked with BNB Chain validators. You keep 70% of rewards; 30% go to the DAO treasury.</li>
+      <li>Each rung unlocks after 10 years. Then claim all or part: paid instantly, or after about 7 days of unstaking.</li>
+      <li>Your shares are also your <b>votes</b> in the DAO.</li>
+      <li>Safety caps: pool limited to 100 BNB, rising 50 BNB a month; stake moves between validators at most 10% a week.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><span class="num">2</span>Market: the emergency exit</h3>
+    <p class="role">The only way to turn emergency shares into cash before they unlock.</p>
+    <p class="addr mono">0xCb4f25dD8E185e7B698a0DD48fE2b15861fAC8F1</p>
+    <ul>
+      <li>A buyer locks USDT or USDC in an offer: "I pay X for Y emergency shares".</li>
+      <li>You accept; your shares wait inside the market.</li>
+      <li>You have <b>7 days to change your mind</b> and cancel.</li>
+      <li>After 7 days, the buyer collects the shares and you collect the money, each separately, so neither side can block the other.</li>
+      <li>Never touches retirement shares. Trading closes 7 days before a rung unlocks.</li>
+      <li>No owner and no fees.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><span class="num">3</span>Treasury: the DAO's wallet</h3>
+    <p class="role">Where the protocol's income goes, controlled only by depositor votes.</p>
+    <p class="addr mono">0x81D43e758CC917802DeFeA3A290D138302B8b8A2</p>
+    <ul>
+      <li>Receives the protocol's <b>30% share of staking rewards</b>.</li>
+      <li>Holds the power to <b>add or remove validators</b> (the "curator" role).</li>
+      <li>Does nothing unless a DAO vote passes, and then only after a <b>2-day waiting period</b>, so everyone can see what is coming.</li>
+      <li>No admin key: not the team, not anyone.</li>
+      <li>No spending limit: a passed vote can spend all of it.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3><span class="num">4</span>Governor: the voting booth</h3>
+    <p class="role">Where depositors propose and vote.</p>
+    <p class="addr mono">0xE398C073F29CcdaF5c03a0C19E3147c13B25991A</p>
+    <ul>
+      <li>Anyone holding shares can vote. <b>1 share = 1 vote.</b></li>
+      <li>Votes are counted as they stood when the proposal was created, so deposits or purchases made afterwards cannot swing it.</li>
+      <li>Creating a proposal needs a ladder worth about 1 BNB.</li>
+      <li>Voting lasts 7 days. It passes with more "for" than "against" and at least 10% of all votes taking part.</li>
+      <li>A passed proposal goes to the treasury, waits 2 days, then anyone can carry it out.</li>
+    </ul>
+  </div>
+</div>
+
+<h2 class="pb">How the contracts are connected</h2>
+<table>
+  <tr><th>Link</th><th>What it means</th></tr>
+  <tr><td>Vault → Validators</td><td>Your BNB is staked with BNB Chain validators to earn rewards, and comes back from them when you claim.</td></tr>
+  <tr><td>Vault ↔ Market</td><td>The market is the <b>only</b> contract allowed to move emergency shares, and only before they unlock. The vault refuses to move retirement shares for anyone, ever.</td></tr>
+  <tr><td>Vault → Treasury</td><td>30% of rewards are paid to the treasury as fee shares. The treasury is also the curator that chooses validators.</td></tr>
+  <tr><td>Governor → Vault</td><td>The governor reads everyone's shares to count votes. It cannot change them.</td></tr>
+  <tr><td>Governor → Treasury</td><td>The governor is the only one allowed to give the treasury orders, and only for proposals that passed.</td></tr>
+  <tr><td>Treasury → Vault</td><td>The treasury carries out passed votes: spend fee income, add or remove validators, move stake within the 10% weekly limit.</td></tr>
+</table>
+<p class="small">These links were fixed at deployment. Each contract checked its partners before it would deploy (for example, the market refused to exist unless the vault expected exactly that market). None of them can be changed afterwards.</p>
+
+<h2>A deposit's life, step by step</h2>
+<table>
+  <tr><th>Step</th><th>What happens</th></tr>
+  <tr><td>1. Deposit</td><td>You send BNB from the website. The vault gives you retirement and emergency shares for this month.</td></tr>
+  <tr><td>2. Stake</td><td>Once 1 BNB or more is waiting, the keeper (or anyone) presses "stake" and the BNB goes to a validator.</td></tr>
+  <tr><td>3. Earn</td><td>Rewards raise the value of every share. 30% of the gain goes to the DAO treasury.</td></tr>
+  <tr><td>4. Vote</td><td>While you hold shares, you can vote on how fees are spent and which validators are used.</td></tr>
+  <tr><td>5. (Optional) Sell</td><td>If life happens, sell emergency shares on the market, with 7 days to cancel.</td></tr>
+  <tr><td>6. Unlock and claim</td><td>After 10 years, claim all or part. The BNB is paid instantly or after about 7 days of unstaking.</td></tr>
+</table>
+
+<h2>Around the contracts</h2>
+<div class="two">
+  <div class="box">
+    <h3>Website</h3>
+    <p class="small">coreos.live/project21/app. Four screens:</p>
+    <p class="small"><b>My ladder</b>: your rungs, values, unlock dates and claims.<br>
+    <b>Deposit</b>: amount, split, and a plain summary before you confirm.<br>
+    <b>Market</b>: offers, selling with cooling-off, buying.<br>
+    <b>DAO</b>: treasury, proposals, voting.</p>
+  </div>
+  <div class="box">
+    <h3>Keeper (auto-staking helper)</h3>
+    <p class="mono" style="margin-bottom:4pt">0xB888df3068230B1dEaCd56F5D259D6BD0661B7E5</p>
+    <p class="small">Runs on the server. Every 10 minutes it checks the vault and presses "stake" when 1 BNB or more is waiting, paying about 0.00003 BNB in fees from its own wallet. It has no role in any contract and cannot move anyone's money. If it stops, anyone can press "Stake it now" on the website.</p>
+  </div>
+  <div class="box">
+    <h3>Deploy wallet</h3>
+    <p class="mono" style="margin-bottom:4pt">0x50EC98729acC0a72fdfb538E6ce6595131bACdeb</p>
+    <p class="small">Used once, to create the four contracts (cost 0.00078 BNB). It now has no role in anything.</p>
+  </div>
+  <div class="box">
+    <h3>Open source and verification</h3>
+    <p class="small">All code: github.com/kingtiong/legacy. All four contracts are verified on Sourcify as an <b>exact match</b>, so anyone can confirm the code running on BNB Chain is the code on GitHub. Tested with 110 unit and fuzz tests and 16 tests against a copy of BNB Chain mainnet.</p>
+  </div>
+</div>
+
+<h2>What nobody can ever do</h2>
+<div class="never">
+  Not you, not the team, not the builder, not a DAO vote:
+  <ul>
+    <li>Take or move anyone's deposit</li>
+    <li>Unlock a rung before its 10 years are up</li>
+    <li>Stop someone from claiming after unlock</li>
+    <li>Change or upgrade the contracts</li>
+  </ul>
+</div>
+
+<h2>Known risks</h2>
+<table>
+  <tr><th>Risk</th><th>What it means</th></tr>
+  <tr><td>Not audited</td><td>A bug could cause losses shared by all depositors. Deposit caps keep the early amount small.</td></tr>
+  <tr><td>BNB price</td><td>If BNB falls, every ladder falls with it. Nothing guarantees a return.</td></tr>
+  <tr><td>DAO capture</td><td>With low turnout, a large holder could pass a vote to spend the treasury or pick poor validators. Deposits stay out of reach.</td></tr>
+  <tr><td>BNB Chain changes</td><td>BNB Chain controls its staking system. A breaking change there could affect staking for everyone.</td></tr>
+  <tr><td>Lost wallet keys</td><td>There is no recovery. Whoever holds the wallet key owns the ladder.</td></tr>
+</table>
+
+<p class="footer">Legacy Ladder · Prepared 15 September 2026. Contract addresses are also listed at github.com/kingtiong/legacy/blob/main/deployments/bsc-mainnet.md. Use only these addresses; anything else claiming to be Legacy Ladder is not. Nothing in this document is financial advice.</p>
+</body>
+</html>
