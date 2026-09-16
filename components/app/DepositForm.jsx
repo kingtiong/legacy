@@ -6,7 +6,7 @@ import { useAccount, useBalance } from 'wagmi';
 import WalletGate from './WalletGate';
 import TxButton from './TxButton';
 import { VAULT, useVaultStats, useChainTime, maturityOf, cohortStart, bnb, day, month, parseAmount } from '../../lib/vaultHooks';
-import { CHAIN_ID } from '../../lib/protocol';
+import { CHAIN_ID, DEPOSITS_PAUSED } from '../../lib/protocol';
 
 const GAS_BUFFER = 10n ** 15n; // 0.001 BNB left for network fees
 
@@ -21,9 +21,21 @@ export default function DepositForm() {
           your emergency bucket, which you can sell to another person if life happens.
         </p>
       </header>
-      <WalletGate>
-        <Form />
-      </WalletGate>
+      {DEPOSITS_PAUSED ? (
+        <div className="panel app-empty paused">
+          <h3>Deposits are paused for a security upgrade</h3>
+          <p className="muted">
+            A pre-audit security review found an issue in the current contracts that could freeze withdrawals. No
+            deposits have been made, so no one’s money is affected. We are fixing it in a new version and will
+            reopen deposits once it is deployed and tested.
+          </p>
+          <p className="muted small">Please do not send BNB to the current vault address directly.</p>
+        </div>
+      ) : (
+        <WalletGate>
+          <Form />
+        </WalletGate>
+      )}
     </>
   );
 }

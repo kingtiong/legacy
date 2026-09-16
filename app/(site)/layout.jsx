@@ -2,7 +2,7 @@ import Link from 'next/link';
 import SiteHeader from '../../components/SiteHeader';
 import { PAGES } from '../../lib/pages';
 import { NAME } from '../../lib/config';
-import { LIVE } from '../../lib/protocol';
+import { LIVE, DEPOSITS_PAUSED } from '../../lib/protocol';
 
 export default function SiteLayout({ children }) {
   return (
@@ -19,7 +19,9 @@ export default function SiteLayout({ children }) {
             {PAGES.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}
           </nav>
           <span className="footnote">
-            {LIVE
+            {DEPOSITS_PAUSED
+              ? 'Deposits paused for a security upgrade. Nothing here is financial advice.'
+              : LIVE
               ? 'Live on BNB Smart Chain. Unaudited contracts. Nothing here is financial advice.'
               : 'Pre-launch. Nothing is deployed, and nothing here is financial advice.'}
           </span>

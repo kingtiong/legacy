@@ -496,3 +496,6 @@ textarea:focus{border-color:var(--teal);outline:none}
   .summary .btn.lg{min-height:52px}
   input[type=text],select{font-size:16px}
 }
+
+.app-banner{margin:0 0 1.4rem;max-width:none}
+.paused h3{color:var(--warn)}

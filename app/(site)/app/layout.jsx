@@ -1,11 +1,16 @@
 import AppNav from '../../../components/app/AppNav';
-import { LIVE, VAULT_ADDRESS, MARKET_ADDRESS, GOVERNOR_ADDRESS, TREASURY_ADDRESS, EXPLORER } from '../../../lib/protocol';
+import { LIVE, DEPOSITS_PAUSED, VAULT_ADDRESS, MARKET_ADDRESS, GOVERNOR_ADDRESS, TREASURY_ADDRESS, EXPLORER } from '../../../lib/protocol';
 
 export default function AppLayout({ children }) {
   return (
     <>
       <AppNav />
       <div className="wrap appbody">
+        {DEPOSITS_PAUSED && (
+          <p className="formmsg err app-banner" role="status">
+            Deposits are paused for a security upgrade. No deposits have been made and no funds are affected.
+          </p>
+        )}
         {children}
         {LIVE && (
           <p className="app-foot">
