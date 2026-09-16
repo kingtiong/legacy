@@ -1,0 +1,285 @@
+{
+  "_about": "Telegram channel posts for scripts/poster.mjs. Posted in this order, twice a day (09:00 and 20:00 Malaysia time), only when approved is true. History figures come from lib/price-history.json (month-end prices). Placeholders are filled live: {bnb_price} {bnb_100} {bnb_x100} {pool_bnb} {staked_bnb} {unlock_month_en} {unlock_month_zh} {open_votes} {link} {years_left}. A post whose live data cannot be read is skipped.",
+  "posts": [
+    {
+      "id": "history-100bnb",
+      "style": "history",
+      "approved": false,
+      "en": "July 2017, 100 BNB cost about US$11.\nToday, 100 BNB is about US${bnb_100}.\n\nNobody predicted this. The ones who got it were not smarter. They simply did not sell.\n\nNot a prediction. Not financial advice.",
+      "zh": "2017年7月，100颗BNB大约只要11美元。\n今天，100颗BNB大约是{bnb_100}美元。\n\n没有人预测得到。拿到的人不是比较聪明，只是没有卖掉而已。\n\n不是预测，也不是投资建议。"
+    },
+    {
+      "id": "imagine-70k",
+      "style": "imagine",
+      "approved": false,
+      "en": "Today BNB is US${bnb_price}.\n\nImagine 2036, BNB is US${bnb_x100}.\nNow imagine 2036, and you sold yours in 2027 to change phone.\n\nWe don't know which price will come. We only know which version of you still has the coins.\n\nThis is imagination, not a prediction.",
+      "zh": "今天BNB是{bnb_price}美元。\n\n想象一下，2036年BNB是{bnb_x100}美元。\n再想象一下，2036年了，你在2027年已经把它卖掉换了一部新手机。\n\n价格会去哪里，没人知道。我们只知道，哪一个你手上还有币。\n\n这只是想象，不是预测。"
+    },
+    {
+      "id": "discipline-house-car",
+      "style": "discipline",
+      "approved": false,
+      "en": "April 2021: 100 BNB was about US$60,000. Enough for a house down payment.\nJune 2022: same 100 BNB, about US$23,000. Now only enough for a car.\n\nThe people who panic sold in 2022 locked in the loss.\nThe people who just held are still holding.\n\nLock it. Stop checking the chart every hour.",
+      "zh": "2021年4月：100颗BNB大约6万美元，够付房子首期。\n2022年6月：同样100颗BNB，只剩大约2.3万美元，只够买车。\n\n2022年恐慌卖出的人，把亏损变成了真的。\n一直拿着的人，到今天还在。\n\n锁起来。别每个小时看图。"
+    },
+    {
+      "id": "family-gold",
+      "style": "family",
+      "approved": false,
+      "en": "Our parents saved gold bars and put them in the drawer.\nThey did not check the gold price every day. They just kept it for the children.\n\nSame idea, new asset.\nPut a little BNB aside every month. Let it sit for 10 years.\n\n{link}",
+      "zh": "我们爸妈那一代，把金条收在抽屉里。\n他们不会每天看金价，只是默默留给孩子。\n\n一样的道理，换一种资产。\n每个月存一点BNB，放着十年不去动。\n\n{link}"
+    },
+    {
+      "id": "live-today",
+      "style": "live",
+      "approved": false,
+      "en": "🪜 Legacy Ladder today\n\nBNB locked for the long run: {pool_bnb} BNB\nStaked with BNB Chain validators: {staked_bnb} BNB\nDeposit this month, first unlock: {unlock_month_en}\nOpen DAO votes: {open_votes}\n\nUnaudited. Only lock what you won't need for 10 years.\n{link}",
+      "zh": "🪜 Legacy Ladder 今日数据\n\n长期锁仓：{pool_bnb} BNB\n已质押给BNB Chain验证节点：{staked_bnb} BNB\n本月存入，最早解锁：{unlock_month_zh}\n进行中的DAO投票：{open_votes}\n\n合约未经审计。只锁你十年都用不到的钱。\n{link}"
+    },
+    {
+      "id": "future-letter",
+      "style": "future",
+      "approved": false,
+      "en": "Dear me in 2036,\n\nI don't know if BNB became US$70 or US$70,000.\nI locked a little every month anyway, so at least I still have it.\nHope you are doing well.\n\nMe, 2026",
+      "zh": "给2036年的自己：\n\n我不知道那时候BNB是70美元，还是7万美元。\n但我每个月还是锁了一点，至少到时候，它还在。\n希望你过得好。\n\n2026年的我"
+    },
+    {
+      "id": "explain-7030",
+      "style": "explain",
+      "approved": false,
+      "en": "How Legacy Ladder works, simple version:\n\n• Every deposit is locked for 10 years\n• At least 70% goes to retirement. Nobody can touch it, not even you\n• Up to 30% is emergency. If life happens, you can sell it to another person for USDT or USDC\n• All of it is staked, and rewards compound inside\n\n{link}",
+      "zh": "Legacy Ladder 怎么运作？简单讲：\n\n• 每一笔存款锁十年\n• 至少70%是退休部分，谁都动不了，包括你自己\n• 最多30%是应急部分，真的有急用，可以卖给别人换USDT或USDC\n• 全部拿去质押，收益在里面继续滚\n\n{link}"
+    },
+    {
+      "id": "history-covid",
+      "style": "history",
+      "approved": false,
+      "en": "March 2020. Covid. Everything crashed. BNB was about US$12.\nEveryone said crypto is finished.\n\nOne year later, April 2021, BNB was about US$600.\n\nThe worst news usually comes at the best price. But almost nobody can buy, or hold, when they are scared.\n\nNot financial advice.",
+      "zh": "2020年3月，疫情，全部暴跌。BNB大约12美元。\n大家都说加密货币完蛋了。\n\n一年后，2021年4月，BNB大约600美元。\n\n最坏的新闻，常常出现在最好的价格。可是人在害怕的时候，很难买，也很难拿得住。\n\n不是投资建议。"
+    },
+    {
+      "id": "imagine-angpao",
+      "style": "imagine",
+      "approved": false,
+      "en": "Imagine this Chinese New Year you give your child 1 BNB instead of cash in the ang pao.\nLocked until they are much older.\n\nCash ang pao: spent by the 5th day.\nLocked ang pao: opened ten years later, together.\n\nWhat it will be worth, nobody knows. That's the fun part.",
+      "zh": "想象一下，今年过年，给孩子的红包不是现金，而是1颗BNB。\n锁起来，等他长大一点才打开。\n\n现金红包：初五就花完了。\n锁起来的红包：十年后，一家人一起打开。\n\n到时候值多少，没人知道。这就是好玩的地方。"
+    },
+    {
+      "id": "discipline-100x",
+      "style": "discipline",
+      "approved": false,
+      "en": "Everyone wants 100x.\nVery few people can hold for 10 years.\n\nThat gap is the whole game.",
+      "zh": "人人都想要100倍。\n能拿住十年的人，很少。\n\n差别，就在这里。"
+    },
+    {
+      "id": "honest-unaudited",
+      "style": "honest",
+      "approved": false,
+      "en": "Straight talk.\n\nLegacy Ladder's contracts are open source and verified, but NOT audited yet.\nThere are deposit limits to keep early risk small.\nBNB can go down. Nothing is guaranteed.\n\nIf you can't leave the money alone for 10 years, don't lock it. We would rather you start small.",
+      "zh": "说实话。\n\nLegacy Ladder 的合约是开源的，也已经公开验证，但还没有经过审计。\n目前有存款上限，让早期风险保持在小范围。\nBNB也可能会跌。没有任何保证。\n\n如果这笔钱你十年内可能要用，就不要锁。我们宁愿你从小额开始。"
+    },
+    {
+      "id": "family-property",
+      "style": "family",
+      "approved": false,
+      "en": "Why did the older generation get rich from property?\n\nNot because they were geniuses.\nBecause selling a house is troublesome. So they held for 20, 30 years.\n\nCrypto is the opposite. One click and it's gone.\nLegacy Ladder puts the \"troublesome\" back.",
+      "zh": "为什么老一辈靠房子致富？\n\n不是因为他们特别聪明。\n是因为卖房子很麻烦，所以一拿就是二三十年。\n\n加密货币刚好相反，按一下就卖掉了。\nLegacy Ladder，就是把那份“麻烦”加回去。"
+    },
+    {
+      "id": "future-2036",
+      "style": "future",
+      "approved": false,
+      "en": "3,650 days.\n120 months.\n1 decision.\n\nDeposit this month, and your first rung unlocks in {unlock_month_en}.",
+      "zh": "3650天。\n120个月。\n1个决定。\n\n这个月存入，第一格在{unlock_month_zh}解锁。"
+    },
+    {
+      "id": "history-eth",
+      "style": "history",
+      "approved": false,
+      "en": "September 2016: 10 ETH cost about US$130.\nNovember 2021: the same 10 ETH was about US$46,000.\nJune 2022: about US$11,000.\n\nSame coins. Same person. Three very different feelings.\nThe only ones who didn't suffer were the ones who didn't look.",
+      "zh": "2016年9月：10颗ETH大约130美元。\n2021年11月：同样10颗ETH，大约4.6万美元。\n2022年6月：大约1.1万美元。\n\n一样的币，一样的人，三种完全不同的心情。\n唯一不痛苦的，是那些根本没去看的人。"
+    },
+    {
+      "id": "imagine-salary",
+      "style": "imagine",
+      "approved": false,
+      "en": "Imagine you save 0.1 BNB every month, from your crypto salary.\nIn 10 years, that is 12 BNB. Plus staking rewards.\n\nToday that's about US${bnb_12} worth.\nIn 2036, it could be much more, or much less. Nobody knows.\n\nBut 12 BNB you kept is always more than 0 BNB you sold.",
+      "zh": "想象一下，你每个月从加密货币薪水里存0.1颗BNB。\n十年，就是12颗BNB，还有质押收益。\n\n以今天的价格，大约{bnb_12}美元。\n2036年，可能多很多，也可能少很多，没人知道。\n\n但是留住的12颗，永远比卖掉之后的0颗多。"
+    },
+    {
+      "id": "explain-market",
+      "style": "explain",
+      "approved": false,
+      "en": "\"What if I really need money before 10 years?\"\n\nYour emergency part (up to 30%) can be sold to another person, for USDT or USDC.\nAfter you accept an offer, you get 7 days cooling-off to change your mind.\n\nYour retirement part (70%) stays locked. That part is for future you.",
+      "zh": "“如果十年内真的急需用钱怎么办？”\n\n你的应急部分（最多30%）可以卖给别人，换USDT或USDC。\n接受报价之后，你还有7天冷静期，可以反悔。\n\n退休部分（70%）继续锁着。那是留给未来的你的。"
+    },
+    {
+      "id": "discipline-checking",
+      "style": "discipline",
+      "approved": false,
+      "en": "Checking the price 50 times a day will not make it go up.\nIt only makes you want to sell.\n\nLock it. Delete the app. Go and have a good kopi.",
+      "zh": "一天看50次价格，它不会因此涨。\n只会让你更想卖。\n\n锁起来。把App删掉。去喝一杯好咖啡。"
+    },
+    {
+      "id": "live-price",
+      "style": "live",
+      "approved": false,
+      "en": "BNB today: US${bnb_price}\n\nOne day this price will look very cheap, or very expensive.\nWe won't know which until years later.\n\nThe ladder doesn't care. It just keeps holding.\n{link}",
+      "zh": "今天BNB：{bnb_price}美元\n\n有一天，这个价格会看起来很便宜，或者很贵。\n要很多年后才知道是哪一个。\n\n阶梯不在乎，它只是一直拿着。\n{link}"
+    },
+    {
+      "id": "family-children",
+      "style": "family",
+      "approved": false,
+      "en": "Many parents in Asia say \"I work hard so my children don't need to\".\n\nBut most crypto earnings never reach the children. They get traded, spent, or lost.\n\nLock a small part every month. Give the key to someone you trust. Let time do the rest.",
+      "zh": "很多亚洲爸妈都说：“我那么辛苦，是为了孩子以后不用那么辛苦。”\n\n可是大部分赚到的加密货币，根本传不到孩子手上。不是炒掉、花掉，就是弄丢了。\n\n每个月锁一小部分。把钥匙交给你信任的人。剩下的，交给时间。"
+    },
+    {
+      "id": "honest-not-bank",
+      "style": "honest",
+      "approved": false,
+      "en": "Legacy Ladder is not a bank. Not a fund. Nobody manages your money.\n\nIt's a smart contract. Nobody can unlock early, not the team, not a vote, not you.\nIf you lose your wallet key, nobody can help you recover it.\n\nKeep your key safe. That part is on you.",
+      "zh": "Legacy Ladder 不是银行，也不是基金。没有人帮你管钱。\n\n它是智能合约。没有人能提早解锁：团队不行，投票不行，你自己也不行。\n如果你弄丢钱包私钥，没有人能帮你找回来。\n\n好好保管你的钥匙。这一部分，要靠你自己。"
+    },
+    {
+      "id": "history-ath",
+      "style": "history",
+      "approved": false,
+      "en": "October 2025, BNB hit a new high, about US$1,100.\nAugust 2026, about US$690.\n\nSome people bought the top and sold the bottom, in less than one year.\nTen years is long enough that one bad year doesn't matter so much.\n\nNot financial advice.",
+      "zh": "2025年10月，BNB创新高，大约1100美元。\n2026年8月，大约690美元。\n\n有人不到一年，就高位买进、低位卖出。\n十年够长，长到一个坏年份，不再那么要紧。\n\n不是投资建议。"
+    },
+    {
+      "id": "imagine-kopitiam",
+      "style": "imagine",
+      "approved": false,
+      "en": "2036, at the kopitiam.\n\nUncle A: \"Last time I had 10 BNB, sold at 300. Aiyo.\"\nUncle B: \"I locked mine every month. Just unlocked this year.\"\n\nWe can't tell you the price in 2036.\nWe can only ask: which uncle do you want to be?",
+      "zh": "2036年，咖啡店里。\n\nA叔：“以前我有10颗BNB，300块就卖了。唉。”\nB叔：“我每个月锁一点，今年刚好解锁。”\n\n2036年的价格，我们说不准。\n只能问你：你想做哪一个叔叔？"
+    },
+    {
+      "id": "explain-dao",
+      "style": "explain",
+      "approved": false,
+      "en": "Who controls Legacy Ladder?\n\nNot the team. The team holds no key in any contract.\n30% of staking rewards go to a treasury, and depositors vote how to use it.\nYour vote = your shares.\n\nNo vote can ever touch anyone's deposit. That rule is written in the code.",
+      "zh": "Legacy Ladder 由谁控制？\n\n不是团队。团队在任何合约里都没有权限。\n质押收益的30%进入金库，由存款人投票决定怎么用。\n你的票数 = 你的份额。\n\n任何投票都动不了任何人的存款。这条规则写死在代码里。"
+    },
+    {
+      "id": "discipline-bonus",
+      "style": "discipline",
+      "approved": false,
+      "en": "Got a good month? Big payout? Token went up?\n\nThat's exactly the moment people buy something they don't need.\nBefore you spend, lock a part first.\n\nPay future you first. Then enjoy the rest, no guilt.",
+      "zh": "这个月赚得不错？拿到一笔大钱？代币涨了？\n\n这正是大家乱买东西的时候。\n花之前，先锁一部分。\n\n先付给未来的自己，剩下的，安心享受。"
+    },
+    {
+      "id": "future-child",
+      "style": "future",
+      "approved": false,
+      "en": "Your child is 8 today.\nIn 10 years, 18. Going to university.\n\nA small BNB rung locked this month unlocks right around then.\n\nWe can't promise what it will be worth. We can promise nobody will spend it before that.",
+      "zh": "你的孩子今年8岁。\n十年后18岁，要上大学了。\n\n这个月锁下的一小格BNB，差不多就在那时候解锁。\n\n我们不能保证那时候值多少。我们只能保证，在那之前，没有人能把它花掉。"
+    },
+    {
+      "id": "live-dao",
+      "style": "live",
+      "approved": false,
+      "en": "🗳 DAO check-in\n\nOpen votes right now: {open_votes}\nIf you have a ladder, you have a vote. Treasury and validator decisions belong to depositors, not the team.\n\n{link}",
+      "zh": "🗳 DAO 近况\n\n目前进行中的投票：{open_votes}\n有阶梯，就有投票权。金库和验证节点怎么安排，由存款人决定，不是团队。\n\n{link}"
+    },
+    {
+      "id": "history-2018",
+      "style": "history",
+      "approved": false,
+      "en": "2018 was a bad year.\nJanuary, BNB about US$14. December, about US$6. Down more than half.\n\nMany people quit crypto forever that year.\nThe ones who held that same BNB were still holding when it passed US$600 in 2021.\n\nNot financial advice.",
+      "zh": "2018年很惨。\n1月，BNB大约14美元；12月，大约6美元。跌了一半多。\n\n那一年，很多人从此离开加密货币。\n而拿住同一批BNB的人，到2021年它超过600美元的时候，还在拿着。\n\n不是投资建议。"
+    },
+    {
+      "id": "imagine-both-ways",
+      "style": "imagine",
+      "approved": false,
+      "en": "US${bnb_price} → US${bnb_x100}? Maybe.\nUS${bnb_price} → US${bnb_div10}? Also maybe.\n\nThe only sure thing: if you sell at every drop and every pump, you end up with neither.\n\nThis is not a prediction.",
+      "zh": "{bnb_price}美元 → {bnb_x100}美元？有可能。\n{bnb_price}美元 → {bnb_div10}美元？也有可能。\n\n唯一确定的是：每次跌就卖、每次涨也卖，最后哪一个都拿不到。\n\n这不是预测。"
+    },
+    {
+      "id": "explain-claim",
+      "style": "explain",
+      "approved": false,
+      "en": "What happens after 10 years?\n\nNothing happens automatically. Your rung just waits for you, and keeps earning.\nWhen you're ready, claim all or part of it back to your wallet.\nSometimes it's instant, sometimes it takes about 7 days to unstake.\n\nNo rush. It's yours.",
+      "zh": "十年后会怎样？\n\n什么都不会自动发生。你的那一格会等你，而且继续赚收益。\n你准备好了，就把全部或一部分领回钱包。\n有时候马上到账，有时候需要大约7天解除质押。\n\n不用急。它是你的。"
+    },
+    {
+      "id": "family-inheritance",
+      "style": "family",
+      "approved": false,
+      "en": "In many families, the gold and the land get passed down.\nThe crypto? Usually lost, because nobody knew the password.\n\nLegacy Ladder lives in your wallet. Whoever holds the key holds the ladder.\nWrite it down properly. Tell someone you trust.",
+      "zh": "很多家庭里，金子和地会传下去。\n加密货币呢？通常就不见了，因为没人知道密码。\n\nLegacy Ladder 放在你的钱包里。谁拿着钥匙，谁就拥有这个阶梯。\n好好记录下来，告诉你信任的人。"
+    },
+    {
+      "id": "discipline-fomo",
+      "style": "discipline",
+      "approved": false,
+      "en": "Friend says: \"This new coin sure 10x one, go all in.\"\n\nMaybe. Maybe not.\nBut if all your money is always \"going in\" somewhere, nothing is ever saved.\n\nKeep playing if you like. Just lock a part first.",
+      "zh": "朋友说：“这个新币稳稳10倍，全部压下去。”\n\n可能会，也可能不会。\n但如果你的钱永远都在“压下去”，那就永远存不到钱。\n\n想玩可以继续玩。只是，先锁一部分。"
+    },
+    {
+      "id": "future-habit",
+      "style": "future",
+      "approved": false,
+      "en": "Start this month and keep going:\n\nYear 11, one rung unlocks.\nYear 11, one month later, another rung.\nThen another. Every month.\n\nLike a salary from your younger self.",
+      "zh": "从这个月开始，一直坚持：\n\n第11年，第一格解锁。\n第11年，再过一个月，又一格。\n然后再一格。每个月都有。\n\n就像年轻时的你，发给未来的你一份薪水。"
+    },
+    {
+      "id": "live-staked",
+      "style": "live",
+      "approved": false,
+      "en": "Right now {staked_bnb} BNB is staked through Legacy Ladder, earning BNB Chain rewards for depositors.\n\n70% of rewards stay with depositors and compound.\n30% go to the DAO treasury that depositors control.\n\n{link}",
+      "zh": "目前通过 Legacy Ladder 质押的BNB：{staked_bnb} BNB，为存款人赚取BNB Chain的质押收益。\n\n收益的70%留给存款人，继续复利。\n30%进入由存款人控制的DAO金库。\n\n{link}"
+    },
+    {
+      "id": "history-15x",
+      "style": "history",
+      "approved": false,
+      "en": "January 2021, BNB was about US$41.\nApril 2021, about US$600.\n\nFifteen times in three months. Most people who owned BNB in January had already sold before April.\n\nBig moves usually happen when you are not watching.\n\nNot financial advice.",
+      "zh": "2021年1月，BNB大约41美元。\n2021年4月，大约600美元。\n\n三个月，15倍。1月手上有BNB的人，大部分在4月之前就卖掉了。\n\n大行情，通常发生在你没在看的时候。\n\n不是投资建议。"
+    },
+    {
+      "id": "honest-price",
+      "style": "honest",
+      "approved": false,
+      "en": "We post \"imagine BNB at US$70,000\" to make you think. Not to promise.\n\nThe honest answer: nobody knows the price in 2036. It could be much higher. It could be much lower.\n\nLegacy Ladder can't make BNB go up. It can only stop you from selling in panic.",
+      "zh": "我们说“想象BNB到7万美元”，是想让你思考，不是承诺。\n\n老实说：2036年的价格，没人知道。可能高很多，也可能低很多。\n\nLegacy Ladder 没办法让BNB涨。它只能阻止你在恐慌的时候卖掉。"
+    },
+    {
+      "id": "imagine-10years-ago",
+      "style": "imagine",
+      "approved": false,
+      "en": "Think back to 10 years ago.\nWhat did you own then that you wish you never sold?\n\nNow think 10 years ahead.\nWhat are you holding today that future you will thank you for keeping?",
+      "zh": "回想十年前。\n那时候你手上有什么，现在很后悔卖掉？\n\n再想想十年后。\n今天你手上的什么，未来的你会感谢你留下来？"
+    },
+    {
+      "id": "explain-small",
+      "style": "explain",
+      "approved": false,
+      "en": "You don't need a lot to start.\n\nMinimum deposit: 0.01 BNB.\nChoose your split: at least 70% retirement, up to 30% emergency.\nDo it again next month. And the month after.\n\nSmall and steady beats big and nervous.\n{link}",
+      "zh": "不需要很多钱才能开始。\n\n最低存款：0.01 BNB。\n自己选比例：至少70%退休，最多30%应急。\n下个月再存，再下个月也存。\n\n小而稳定，胜过大而紧张。\n{link}"
+    },
+    {
+      "id": "discipline-dca",
+      "style": "discipline",
+      "approved": false,
+      "en": "Don't try to guess the bottom.\nNobody rings a bell at the bottom.\n\nSame amount every month. Price high, you buy less. Price low, you buy more.\nLock it and let the months pile up.",
+      "zh": "不要猜底部。\n底部来的时候，没有人会敲钟通知你。\n\n每个月存一样的数目。价格高，买少一点；价格低，买多一点。\n锁起来，让一个月一个月慢慢叠上去。"
+    },
+    {
+      "id": "future-question",
+      "style": "future",
+      "approved": false,
+      "en": "Where is the crypto you earned 10 years ago?\n\nAnd how much of this year's will still be yours 10 years from now?",
+      "zh": "十年前你赚到的加密货币，现在在哪里？\n\n今年赚到的，十年后，还会剩下多少是你的？"
+    },
+    {
+      "id": "honest-risks",
+      "style": "honest",
+      "approved": false,
+      "en": "Before you lock anything, know the risks:\n\n• BNB price can fall a lot\n• Contracts are not audited yet\n• Lose your wallet key = lose your ladder\n• 10 years is really long. Only lock money you won't need\n\nIf all of that is OK, start small.\n{link}",
+      "zh": "锁之前，先了解风险：\n\n• BNB价格可能大跌\n• 合约还没经过审计\n• 弄丢钱包私钥 = 失去你的阶梯\n• 十年真的很长，只锁用不到的钱\n\n如果这些你都接受，就从小额开始。\n{link}"
+    }
+  ]
+}
