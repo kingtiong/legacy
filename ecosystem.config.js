@@ -32,5 +32,16 @@ module.exports = {
       max_restarts: 10,
       restart_delay: 60000,
     },
+    {
+      // Watches the contracts, keeper and website; alerts to Telegram (scripts/monitor.mjs). Telegram credentials live
+      // in /etc/legacy-ladder/monitor.env, outside the repository.
+      name: 'ladder-monitor',
+      cwd: '/var/www/coreoslab/projects/project21 - Legacy Ladder',
+      script: 'scripts/monitor.mjs',
+      interpreter: NODE,
+      env: { INTERVAL_SECONDS: '300', DAILY_SUMMARY_UTC_HOUR: '1' },
+      max_restarts: 50,
+      restart_delay: 60000,
+    },
   ],
 };
