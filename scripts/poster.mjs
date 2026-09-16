@@ -20,7 +20,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const POSTS_FILE = process.env.POSTS_FILE || join(ROOT, 'content/telegram-posts.json');
 const ENV_FILE = process.env.POSTER_ENV_FILE || '/etc/legacy-ladder/poster.env';
 const STATE_FILE = process.env.POSTER_STATE_FILE || '/var/lib/legacy-ladder/poster-state.json';
-const SITE = process.env.SITE_URL || 'https://coreos.live/project21';
+const SITE = process.env.SITE_URL || 'https://decadium.club';
 const RPC_URL = process.env.RPC_URL || 'https://bsc-dataseed.bnbchain.org';
 const SLOTS_UTC = (process.env.SLOTS_UTC || '01:00,12:00').split(',').map((s) => s.trim());
 const VAULT = '0x0C09EC94aDb65314448562B028FC5AfDBa421742';

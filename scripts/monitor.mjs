@@ -37,7 +37,7 @@ const ADDR = {
   ...JSON.parse(process.env.MONITOR_ADDRESSES || '{}'),
 };
 const ZERO = '0x0000000000000000000000000000000000000000';
-const SITE = process.env.SITE_URL || 'https://coreos.live/project21';
+const SITE = process.env.SITE_URL || 'https://decadium.club';
 const RPC_URL = process.env.RPC_URL || 'https://bsc-dataseed.bnbchain.org';
 const INTERVAL = Number(process.env.INTERVAL_SECONDS || 300) * 1000;
 const STATE_FILE = process.env.MONITOR_STATE_FILE || '/var/lib/legacy-ladder/monitor-state.json';

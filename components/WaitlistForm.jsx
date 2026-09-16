@@ -15,7 +15,7 @@ export default function WaitlistForm() {
     e.preventDefault();
     setState({ status: 'sending', message: '' });
     try {
-      const res = await fetch('/project21/api/waitlist', {
+      const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, chain, monthly: Number(monthly), wallet: address || '' }),

@@ -7,7 +7,7 @@ import { QUESTION_COOKIE } from '../lib/questions';
 // different one. Runs only when the page is actually shown, never on a prefetch.
 export default function RememberQuestion({ index }) {
   useEffect(() => {
-    document.cookie = `${QUESTION_COOKIE}=${index}; Path=/project21; Max-Age=31536000; SameSite=Lax; Secure`;
+    document.cookie = `${QUESTION_COOKIE}=${index}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
   }, [index]);
   return null;
 }

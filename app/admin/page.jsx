@@ -38,7 +38,7 @@ export default async function AdminPage() {
             <h1>Waitlist signups</h1>
             <p>Newest first. Times are UTC. Monthly amounts are what people said they&rsquo;d contribute, not deposits.</p>
           </div>
-          <a className="btn ghost" href="/project21/admin/export" download>Download CSV</a>
+          <a className="btn ghost" href="/admin/export" download>Download CSV</a>
         </div>
 
         <div className="admin-stats">
