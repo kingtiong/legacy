@@ -506,3 +506,21 @@ textarea:focus{border-color:var(--teal);outline:none}
 @media (max-width:760px){.brand-logo{height:16px}}
 .btn:hover:not(:disabled){filter:none;background:#0B2A4D;border-color:#0B2A4D}
 .btn.ghost:hover:not(:disabled){background:transparent}
+
+/* ---------- touch screens (phones and tablets): comfortable tap targets ---------- */
+@media (pointer:coarse){
+  .btn{min-height:44px}
+  .btn.sm{min-height:40px}
+  .toggle button{min-height:44px}
+  .brand{min-height:44px}
+  footer .brand.small{padding-block:7px}
+  input[type=range]{height:32px}
+  input[type=range]::-webkit-slider-thumb{width:26px;height:26px}
+  input[type=range]::-moz-range-thumb{width:26px;height:26px}
+}
+/* ---------- phones: keep small uppercase labels readable ---------- */
+@media (max-width:760px){
+  .field label,.never-tag,.hold-step,.risks-head,.tile .k,.bucket .k,.offer .k,.kv dt,.headline .k{font-size:.75rem}
+  .eyebrow{font-size:.75rem}
+  .pill{font-size:.7rem}
+}
