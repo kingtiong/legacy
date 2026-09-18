@@ -12,7 +12,7 @@ export default function WaitlistPage() {
               <p className="eyebrow">Stay informed</p>
               <h1 className="h1-page">Hear when it matters</h1>
               <p className="muted">
-                Legacy Ladder is live on BNB Smart Chain, and its contracts have not been audited yet.
+                Decadium is live on BNB Smart Chain, and its contracts have not been audited yet.
                 Leave your email and we write only when something matters: an audit result, a DAO vote
                 that needs depositors, or a risk you should know about. Connecting a wallet adds your
                 address, which is how early contributors will be recognised.

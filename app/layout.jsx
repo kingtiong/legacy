@@ -4,7 +4,7 @@ import { NAME, TAGLINE, SITE_URL } from '../lib/config';
 
 // Bump after re-rendering public/og.png (og/render.sh). Apps cache previews by
 // URL, so a new query string is what makes them fetch the new image.
-const OG_VERSION = 3;
+const OG_VERSION = 4;
 const DESCRIPTION =
   'Deposit BNB every month and lock each deposit for ten years while it earns staking rewards. From year eleven, each month’s deposit unlocks in turn. A time-locked savings protocol on BNB Smart Chain.';
 const OG_IMAGE = {

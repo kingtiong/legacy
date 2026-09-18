@@ -1,4 +1,4 @@
-// Legacy Ladder monitor: watches the live contracts, the keeper and the website, and sends alerts to Telegram.
+// Decadium monitor: watches the live contracts, the keeper and the website, and sends alerts to Telegram.
 //
 // Every INTERVAL_SECONDS (300) it checks, and alerts once when something goes wrong (repeating at most every 6 hours,
 // with a "resolved" message when it clears):
@@ -136,7 +136,7 @@ async function send(text) {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chat_id: chat, text: `Legacy Ladder\n${text}`, disable_web_page_preview: true }),
+      body: JSON.stringify({ chat_id: chat, text: `Decadium\n${text}`, disable_web_page_preview: true }),
     });
     if (!res.ok) log(`telegram error ${res.status}: ${(await res.text()).slice(0, 200)}`);
     return res.ok;

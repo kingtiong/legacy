@@ -32,7 +32,7 @@ export default function WalletGate({ children, title = 'Connect your wallet' }) 
     return (
       <div className="panel app-empty">
         <h3>Switch to BNB Smart Chain</h3>
-        <p className="muted">Legacy Ladder runs on BNB Smart Chain only.</p>
+        <p className="muted">Decadium runs on BNB Smart Chain only.</p>
         <button className="btn" type="button" disabled={isPending} onClick={() => switchChain({ chainId: CHAIN_ID })}>
           {isPending ? 'Check your wallet…' : 'Switch network'}
         </button>

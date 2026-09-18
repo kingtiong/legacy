@@ -24,7 +24,7 @@ export default async function Home() {
         <p className="ask-follow">{follow(inTenYears)}</p>
         <div className="ask-cta">
           <Link className="btn lg" href="/story">See what happened to those who kept it</Link>
-          <Link className="ask-link" href="/how-it-works">How Legacy Ladder works <span aria-hidden="true">&rarr;</span></Link>
+          <Link className="ask-link" href="/how-it-works">How Decadium works <span aria-hidden="true">&rarr;</span></Link>
         </div>
       </div>
       <RememberQuestion index={index} />

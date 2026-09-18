@@ -11,9 +11,8 @@ export default function SiteLayout({ children }) {
       <main id="top">{children}</main>
       <footer>
         <div className="wrap inner">
-          <Link className="brand small" href="/">
-            <span className="rungs" aria-hidden="true"><i /><i /><i /></span>
-            {NAME}
+          <Link className="brand small" href="/" aria-label={`${NAME} home`}>
+            <img className="brand-logo" src="/brand/decadium-logo.png" alt={`${NAME}: time is the strategy.`} width="1334" height="272" />
           </Link>
           <nav className="footnav" aria-label="Footer">
             {PAGES.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}

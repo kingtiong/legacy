@@ -30,9 +30,8 @@ export default function SiteHeader() {
     <>
     <header ref={header} className={`topbar${open ? ' is-open' : ''}`}>
       <div className="wrap inner">
-        <Link className="brand" href="/">
-          <span className="rungs" aria-hidden="true"><i /><i /><i /></span>
-          {NAME}
+        <Link className="brand" href="/" aria-label={`${NAME} home`}>
+          <img className="brand-logo" src="/brand/decadium-wordmark.png" alt={NAME} width="1334" height="180" />
         </Link>
         <button ref={button} type="button" className="menu-btn" aria-expanded={open} aria-controls="site-menu"
           onClick={() => setOpen((v) => !v)}>

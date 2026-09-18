@@ -33,8 +33,8 @@
       "id": "live-today",
       "style": "live",
       "approved": false,
-      "en": "🪜 Legacy Ladder today\n\nBNB locked for the long run: {pool_bnb} BNB\nStaked with BNB Chain validators: {staked_bnb} BNB\nDeposit this month, first unlock: {unlock_month_en}\nOpen DAO votes: {open_votes}\n\nUnaudited. Only lock what you won't need for 10 years.\n{link}",
-      "zh": "🪜 Legacy Ladder 今日数据\n\n长期锁仓：{pool_bnb} BNB\n已质押给BNB Chain验证节点：{staked_bnb} BNB\n本月存入，最早解锁：{unlock_month_zh}\n进行中的DAO投票：{open_votes}\n\n合约未经审计。只锁你十年都用不到的钱。\n{link}"
+      "en": "🪜 Decadium today\n\nBNB locked for the long run: {pool_bnb} BNB\nStaked with BNB Chain validators: {staked_bnb} BNB\nDeposit this month, first unlock: {unlock_month_en}\nOpen DAO votes: {open_votes}\n\nUnaudited. Only lock what you won't need for 10 years.\n{link}",
+      "zh": "🪜 Decadium 今日数据\n\n长期锁仓：{pool_bnb} BNB\n已质押给BNB Chain验证节点：{staked_bnb} BNB\n本月存入，最早解锁：{unlock_month_zh}\n进行中的DAO投票：{open_votes}\n\n合约未经审计。只锁你十年都用不到的钱。\n{link}"
     },
     {
       "id": "future-letter",
@@ -47,8 +47,8 @@
       "id": "explain-7030",
       "style": "explain",
       "approved": false,
-      "en": "How Legacy Ladder works, simple version:\n\n• Every deposit is locked for 10 years\n• At least 70% goes to retirement. Nobody can touch it, not even you\n• Up to 30% is emergency. If life happens, you can sell it to another person for USDT or USDC\n• All of it is staked, and rewards compound inside\n\n{link}",
-      "zh": "Legacy Ladder 怎么运作？简单讲：\n\n• 每一笔存款锁十年\n• 至少70%是退休部分，谁都动不了，包括你自己\n• 最多30%是应急部分，真的有急用，可以卖给别人换USDT或USDC\n• 全部拿去质押，收益在里面继续滚\n\n{link}"
+      "en": "How Decadium works, simple version:\n\n• Every deposit is locked for 10 years\n• At least 70% goes to retirement. Nobody can touch it, not even you\n• Up to 30% is emergency. If life happens, you can sell it to another person for USDT or USDC\n• All of it is staked, and rewards compound inside\n\n{link}",
+      "zh": "Decadium 怎么运作？简单讲：\n\n• 每一笔存款锁十年\n• 至少70%是退休部分，谁都动不了，包括你自己\n• 最多30%是应急部分，真的有急用，可以卖给别人换USDT或USDC\n• 全部拿去质押，收益在里面继续滚\n\n{link}"
     },
     {
       "id": "history-covid",
@@ -75,15 +75,15 @@
       "id": "honest-unaudited",
       "style": "honest",
       "approved": false,
-      "en": "Straight talk.\n\nLegacy Ladder's contracts are open source and verified, but NOT audited yet.\nThere are deposit limits to keep early risk small.\nBNB can go down. Nothing is guaranteed.\n\nIf you can't leave the money alone for 10 years, don't lock it. We would rather you start small.",
-      "zh": "说实话。\n\nLegacy Ladder 的合约是开源的，也已经公开验证，但还没有经过审计。\n目前有存款上限，让早期风险保持在小范围。\nBNB也可能会跌。没有任何保证。\n\n如果这笔钱你十年内可能要用，就不要锁。我们宁愿你从小额开始。"
+      "en": "Straight talk.\n\nDecadium's contracts are open source and verified, but NOT audited yet.\nThere are deposit limits to keep early risk small.\nBNB can go down. Nothing is guaranteed.\n\nIf you can't leave the money alone for 10 years, don't lock it. We would rather you start small.",
+      "zh": "说实话。\n\nDecadium 的合约是开源的，也已经公开验证，但还没有经过审计。\n目前有存款上限，让早期风险保持在小范围。\nBNB也可能会跌。没有任何保证。\n\n如果这笔钱你十年内可能要用，就不要锁。我们宁愿你从小额开始。"
     },
     {
       "id": "family-property",
       "style": "family",
       "approved": false,
-      "en": "Why did the older generation get rich from property?\n\nNot because they were geniuses.\nBecause selling a house is troublesome. So they held for 20, 30 years.\n\nCrypto is the opposite. One click and it's gone.\nLegacy Ladder puts the \"troublesome\" back.",
-      "zh": "为什么老一辈靠房子致富？\n\n不是因为他们特别聪明。\n是因为卖房子很麻烦，所以一拿就是二三十年。\n\n加密货币刚好相反，按一下就卖掉了。\nLegacy Ladder，就是把那份“麻烦”加回去。"
+      "en": "Why did the older generation get rich from property?\n\nNot because they were geniuses.\nBecause selling a house is troublesome. So they held for 20, 30 years.\n\nCrypto is the opposite. One click and it's gone.\nDecadium puts the \"troublesome\" back.",
+      "zh": "为什么老一辈靠房子致富？\n\n不是因为他们特别聪明。\n是因为卖房子很麻烦，所以一拿就是二三十年。\n\n加密货币刚好相反，按一下就卖掉了。\nDecadium，就是把那份“麻烦”加回去。"
     },
     {
       "id": "future-2036",
@@ -138,8 +138,8 @@
       "id": "honest-not-bank",
       "style": "honest",
       "approved": false,
-      "en": "Legacy Ladder is not a bank. Not a fund. Nobody manages your money.\n\nIt's a smart contract. Nobody can unlock early, not the team, not a vote, not you.\nIf you lose your wallet key, nobody can help you recover it.\n\nKeep your key safe. That part is on you.",
-      "zh": "Legacy Ladder 不是银行，也不是基金。没有人帮你管钱。\n\n它是智能合约。没有人能提早解锁：团队不行，投票不行，你自己也不行。\n如果你弄丢钱包私钥，没有人能帮你找回来。\n\n好好保管你的钥匙。这一部分，要靠你自己。"
+      "en": "Decadium is not a bank. Not a fund. Nobody manages your money.\n\nIt's a smart contract. Nobody can unlock early, not the team, not a vote, not you.\nIf you lose your wallet key, nobody can help you recover it.\n\nKeep your key safe. That part is on you.",
+      "zh": "Decadium 不是银行，也不是基金。没有人帮你管钱。\n\n它是智能合约。没有人能提早解锁：团队不行，投票不行，你自己也不行。\n如果你弄丢钱包私钥，没有人能帮你找回来。\n\n好好保管你的钥匙。这一部分，要靠你自己。"
     },
     {
       "id": "history-ath",
@@ -159,8 +159,8 @@
       "id": "explain-dao",
       "style": "explain",
       "approved": false,
-      "en": "Who controls Legacy Ladder?\n\nNot the team. The team holds no key in any contract.\n30% of staking rewards go to a treasury, and depositors vote how to use it.\nYour vote = your shares.\n\nNo vote can ever touch anyone's deposit. That rule is written in the code.",
-      "zh": "Legacy Ladder 由谁控制？\n\n不是团队。团队在任何合约里都没有权限。\n质押收益的30%进入金库，由存款人投票决定怎么用。\n你的票数 = 你的份额。\n\n任何投票都动不了任何人的存款。这条规则写死在代码里。"
+      "en": "Who controls Decadium?\n\nNot the team. The team holds no key in any contract.\n30% of staking rewards go to a treasury, and depositors vote how to use it.\nYour vote = your shares.\n\nNo vote can ever touch anyone's deposit. That rule is written in the code.",
+      "zh": "Decadium 由谁控制？\n\n不是团队。团队在任何合约里都没有权限。\n质押收益的30%进入金库，由存款人投票决定怎么用。\n你的票数 = 你的份额。\n\n任何投票都动不了任何人的存款。这条规则写死在代码里。"
     },
     {
       "id": "discipline-bonus",
@@ -208,8 +208,8 @@
       "id": "family-inheritance",
       "style": "family",
       "approved": false,
-      "en": "In many families, the gold and the land get passed down.\nThe crypto? Usually lost, because nobody knew the password.\n\nLegacy Ladder lives in your wallet. Whoever holds the key holds the ladder.\nWrite it down properly. Tell someone you trust.",
-      "zh": "很多家庭里，金子和地会传下去。\n加密货币呢？通常就不见了，因为没人知道密码。\n\nLegacy Ladder 放在你的钱包里。谁拿着钥匙，谁就拥有这个阶梯。\n好好记录下来，告诉你信任的人。"
+      "en": "In many families, the gold and the land get passed down.\nThe crypto? Usually lost, because nobody knew the password.\n\nDecadium lives in your wallet. Whoever holds the key holds the ladder.\nWrite it down properly. Tell someone you trust.",
+      "zh": "很多家庭里，金子和地会传下去。\n加密货币呢？通常就不见了，因为没人知道密码。\n\nDecadium 放在你的钱包里。谁拿着钥匙，谁就拥有这个阶梯。\n好好记录下来，告诉你信任的人。"
     },
     {
       "id": "discipline-fomo",
@@ -229,8 +229,8 @@
       "id": "live-staked",
       "style": "live",
       "approved": false,
-      "en": "Right now {staked_bnb} BNB is staked through Legacy Ladder, earning BNB Chain rewards for depositors.\n\n70% of rewards stay with depositors and compound.\n30% go to the DAO treasury that depositors control.\n\n{link}",
-      "zh": "目前通过 Legacy Ladder 质押的BNB：{staked_bnb} BNB，为存款人赚取BNB Chain的质押收益。\n\n收益的70%留给存款人，继续复利。\n30%进入由存款人控制的DAO金库。\n\n{link}"
+      "en": "Right now {staked_bnb} BNB is staked through Decadium, earning BNB Chain rewards for depositors.\n\n70% of rewards stay with depositors and compound.\n30% go to the DAO treasury that depositors control.\n\n{link}",
+      "zh": "目前通过 Decadium 质押的BNB：{staked_bnb} BNB，为存款人赚取BNB Chain的质押收益。\n\n收益的70%留给存款人，继续复利。\n30%进入由存款人控制的DAO金库。\n\n{link}"
     },
     {
       "id": "history-15x",
@@ -243,8 +243,8 @@
       "id": "honest-price",
       "style": "honest",
       "approved": false,
-      "en": "We post \"imagine BNB at US$70,000\" to make you think. Not to promise.\n\nThe honest answer: nobody knows the price in 2036. It could be much higher. It could be much lower.\n\nLegacy Ladder can't make BNB go up. It can only stop you from selling in panic.",
-      "zh": "我们说“想象BNB到7万美元”，是想让你思考，不是承诺。\n\n老实说：2036年的价格，没人知道。可能高很多，也可能低很多。\n\nLegacy Ladder 没办法让BNB涨。它只能阻止你在恐慌的时候卖掉。"
+      "en": "We post \"imagine BNB at US$70,000\" to make you think. Not to promise.\n\nThe honest answer: nobody knows the price in 2036. It could be much higher. It could be much lower.\n\nDecadium can't make BNB go up. It can only stop you from selling in panic.",
+      "zh": "我们说“想象BNB到7万美元”，是想让你思考，不是承诺。\n\n老实说：2036年的价格，没人知道。可能高很多，也可能低很多。\n\nDecadium 没办法让BNB涨。它只能阻止你在恐慌的时候卖掉。"
     },
     {
       "id": "imagine-10years-ago",

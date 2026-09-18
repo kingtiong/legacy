@@ -1,4 +1,6 @@
-# Legacy Ladder
+# Decadium
+
+*Time is the strategy.* (Formerly "Legacy Ladder"; the contracts keep their original names.)
 
 A savings protocol for people paid in crypto. Lock a slice of what you earn each month for ten years, staked
 while it waits, and receive it back month by month from year eleven.

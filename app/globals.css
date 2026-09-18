@@ -1,27 +1,27 @@
 /* Legacy Ladder: deep pine ground, brass for what is paid out, teal for what
    is locked. Committed to a single dark look. */
 :root{
-  --bg:#0A1110;
-  --bg-alt:#0D1715;
-  --surface:#121C1A;
-  --surface-2:#18241F;
-  --ink:#ECF1EE;
-  --ink-soft:#A0ADA8;
-  --ink-faint:#6C7A75;
-  --rule:#22302C;
-  --rule-soft:#1A2522;
-  --teal:#74BAAE;
-  --teal-dim:#3F6E67;
-  --teal-wash:#132824;
-  --brass:#D9AB4F;
-  --brass-dim:#8D7033;
-  --brass-wash:#221D11;
-  --warn:#DE8D6D;
+  --bg:#F7F8FA;
+  --bg-alt:#EEF1F5;
+  --surface:#FFFFFF;
+  --surface-2:#F2F4F7;
+  --ink:#021326;
+  --ink-soft:#3E4B5E;
+  --ink-faint:#6E7A8C;
+  --rule:#D8DEE6;
+  --rule-soft:#E6EAF0;
+  --teal:#1E6F68;
+  --teal-dim:#8FC2BB;
+  --teal-wash:#E5F1EF;
+  --brass:#8F6B22;
+  --brass-dim:#D9C38F;
+  --brass-wash:#F8F2E3;
+  --warn:#B24A25;
   --serif:"Spectral",Georgia,"Times New Roman",serif;
   --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   --wrap:1180px;
-  color-scheme:dark;
+  color-scheme:light;
 }
 
 *{box-sizing:border-box}
@@ -57,7 +57,7 @@ p{margin:0 0 1rem;max-width:64ch}
 /* ---------- top bar ---------- */
 .topbar{
   position:sticky;top:0;z-index:50;
-  background:rgba(10,17,16,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  background:rgba(247,248,250,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
   border-bottom:1px solid var(--rule);
 }
 .topbar .inner{display:flex;align-items:center;gap:1.5rem;height:64px}
@@ -72,7 +72,7 @@ p{margin:0 0 1rem;max-width:64ch}
   display:inline-flex;align-items:center;justify-content:center;gap:.4rem;
   font-family:var(--sans);font-size:.92rem;font-weight:500;line-height:1.2;text-decoration:none;
   padding:.62rem 1.1rem;border-radius:4px;cursor:pointer;
-  border:1px solid var(--brass);background:var(--brass);color:#1A1408;
+  border:1px solid var(--ink);background:var(--ink);color:#FFFFFF;
   transition:filter .15s ease,border-color .15s ease,color .15s ease;
 }
 .btn:hover:not(:disabled){filter:brightness(1.08)}
@@ -95,7 +95,7 @@ p{margin:0 0 1rem;max-width:64ch}
 .rg0{stroke:var(--rule)}
 .rg1{stroke:var(--teal)}
 .rg2{stroke:var(--brass)}
-.rg3{stroke:#FFF6DF;stroke-width:2.6;transition:none}
+.rg3{stroke:var(--ink);stroke-width:2.6;transition:none}
 .hl-readout{display:flex;align-items:center;gap:1rem;justify-content:center;margin-top:.9rem;padding-top:1rem;border-top:1px solid var(--rule)}
 .hl-yr{font-family:var(--mono);font-size:2.4rem;line-height:1;font-weight:500;color:var(--brass);min-width:4ch;text-align:right}
 .hl-meta{display:flex;flex-direction:column;font-size:.9rem;line-height:1.35;min-width:0}
@@ -113,9 +113,9 @@ p{margin:0 0 1rem;max-width:64ch}
 .menu-icon i{display:block;height:1.5px;border-radius:1px;background:currentColor;transition:transform .2s ease}
 .topbar.is-open .menu-icon i:first-child{transform:translateY(3.25px) rotate(45deg)}
 .topbar.is-open .menu-icon i:last-child{transform:translateY(-3.25px) rotate(-45deg)}
-.menu-panel{position:absolute;left:0;right:0;top:100%;background:var(--bg);border-bottom:1px solid var(--rule);box-shadow:0 28px 48px rgba(0,0,0,.5);max-height:calc(100svh - 64px);overflow-y:auto}
+.menu-panel{position:absolute;left:0;right:0;top:100%;background:var(--bg);border-bottom:1px solid var(--rule);box-shadow:0 28px 48px rgba(2,19,38,.12);max-height:calc(100svh - 64px);overflow-y:auto}
 .menu-panel[hidden]{display:none}
-.menu-scrim{position:fixed;inset:0;z-index:40;background:rgba(4,8,7,.72)}
+.menu-scrim{position:fixed;inset:0;z-index:40;background:rgba(2,19,38,.35)}
 .menu-panel ul{list-style:none;margin:0;padding:.6rem 0 1.6rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:0 2.5rem}
 .menu-panel a{display:flex;flex-direction:column;gap:.15rem;padding:1rem 0;border-bottom:1px solid var(--rule-soft);text-decoration:none}
 .menu-label{font-family:var(--serif);font-size:1.5rem;font-weight:600;line-height:1.2;color:var(--ink)}
@@ -499,3 +499,10 @@ textarea:focus{border-color:var(--teal);outline:none}
 
 .app-banner{margin:0 0 1.4rem;max-width:none}
 .paused h3{color:var(--warn)}
+
+/* ---------- Decadium brand ---------- */
+.brand-logo{display:block;height:20px;width:auto}
+.brand.small .brand-logo{height:30px}
+@media (max-width:760px){.brand-logo{height:16px}}
+.btn:hover:not(:disabled){filter:none;background:#0B2A4D;border-color:#0B2A4D}
+.btn.ghost:hover:not(:disabled){background:transparent}
