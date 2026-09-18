@@ -89,7 +89,7 @@ contract DeployForkTest is Test {
         vault.deposit{value: 4 ether}(bob, 8_000);
         vault.flush(); // staked with a real launch validator
         vm.deal(address(timelock), 1 ether); // treasury BNB, as if fees had been redeemed
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
 
         address[] memory targets = new address[](1);
         targets[0] = grantee;
@@ -99,7 +99,7 @@ contract DeployForkTest is Test {
         vm.prank(alice);
         uint256 id = governor.propose(targets, values, calldatas, "Fund the first audit");
 
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         vm.prank(alice);
         governor.castVote(id, 1);
         vm.prank(bob);

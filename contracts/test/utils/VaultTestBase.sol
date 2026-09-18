@@ -99,7 +99,7 @@ abstract contract VaultTestBase is Test {
         uint256 voting = v.totalSupply() - v.totalSupply(v.FEE_SHARES_ID());
         assertEq(sum, voting, "all voting shares are held by known holders");
         uint256 snapshot = vm.snapshotState();
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         assertEq(v.getPastTotalSupply(block.timestamp - 1), voting, "recorded total == voting shares");
         vm.revertToState(snapshot);
     }

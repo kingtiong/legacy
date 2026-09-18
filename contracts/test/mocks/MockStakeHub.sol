@@ -106,6 +106,10 @@ contract MockStakeCredit {
         if (!ok) revert TransferFailed();
     }
 
+    function unbondRequest(address delegator, uint256 index) external view returns (UnbondRequest memory) {
+        return _queue[delegator][_head[delegator] + index];
+    }
+
     function pendingUnbondRequest(address delegator) external view returns (uint256) {
         return _queue[delegator].length - _head[delegator];
     }

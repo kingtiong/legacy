@@ -14,7 +14,8 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 ///           1. TimelockController: the DAO treasury, and the vault's fee recipient and curator. Its only proposer and canceller
 ///              is the governor (predicted address), anyone may execute a passed proposal after the delay, and it has
 ///              no admin: its settings change only through its own proposals.
-///           2. LadderVault, with the timelock as fee recipient and curator, and the predicted market address. No team
+///           2. LadderVault, with the timelock as fee recipient and curator, the predicted market address, and a
+///              0.001 BNB permanent seed (shares minted to a dead address, so the pool is never empty). No team
 ///              wallet or multisig holds any role: depositors govern both through the DAO.
 ///           3. CohortMarket, which refuses to deploy unless the vault expects it.
 ///           4. LadderGovernor, which refuses to deploy unless the timelock is the vault's fee recipient and the
@@ -35,6 +36,8 @@ contract Deploy is Script {
     uint256 internal constant CAP_REMOVED_AT_EPOCH = 36;
     /// @notice Wait between a proposal passing and anyone being able to execute it.
     uint256 internal constant TIMELOCK_DELAY = 2 days;
+    /// @notice Permanent seed deposited at deployment (shares held by nobody), so the pool is never empty.
+    uint256 internal constant SEED = 0.001 ether;
 
     address internal constant BSC_USDT = 0x55d398326f99059fF775485246999027B3197955;
     address internal constant BSC_USDC = 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d;
@@ -95,7 +98,7 @@ contract Deploy is Script {
         internal
         returns (LadderVault)
     {
-        return new LadderVault(
+        return new LadderVault{value: SEED}(
             LadderVault.Config({
                 market: market,
                 feeRecipient: treasury,
@@ -118,6 +121,7 @@ contract Deploy is Script {
         LadderGovernor governor
     ) internal view {
         require(vault.MARKET() == address(market), "vault market mismatch");
+        require(vault.balanceOf(vault.DEAD(), vault.FEE_SHARES_ID()) == SEED * 1e3, "seed missing");
         require(address(market.VAULT()) == address(vault), "market vault mismatch");
         require(vault.feeRecipient() == address(timelock), "fee recipient is not the DAO treasury");
         require(vault.curator() == address(timelock), "curator is not the DAO treasury");

@@ -98,6 +98,8 @@ Each of these is now prevented in code and covered by a test.
 | Liquidity for the last claimant | Applying the surplus wrongly left the final claimant 1 wei short of stake | `idle + surplus + staked` always equals the pool, and no claim exceeds the pool |
 | Dust sale maturing in escrow | Found by the market fuzzer: a 1-share sale that matured before collection became a claim worth 0 wei, which the vault refuses, so the buyer's collection could never succeed | Minimum sale value; worthless shares close the sale instead of reverting |
 | EIP-7702 wallets | A wallet whose delegate lacks the ERC-1155 hook could not deposit or buy (found when a mainnet test address turned out to be 7702-delegated) | Hook skipped for 7702-delegated accounts only |
+| Unbond-queue flood (review H-1) | StakeCredit's `claimableUnbondRequest` scans the whole queue; thousands of tiny claims would have pushed every withdrawal past the block gas limit, forever | Only the head of the queue is read, at most 50 requests are claimed per call, withdrawals collect only when needed, and claims below 0.001 BNB are refused unless they redeem a whole balance |
+| StakeHub pause blocking reserved BNB (review M-1) | A paused or blacklisting StakeHub would also have blocked BNB already in the vault | Collection is skipped when the reserve covers the claim, and a refused StakeHub claim is skipped |
 | Cross-party blocking | A blacklisted seller or a buyer that cannot hold shares would otherwise freeze the other side of the sale | Independent, redirectable collection for each side |
 
 ## Test evidence
@@ -114,6 +116,7 @@ Each of these is now prevented in code and covered by a test.
 - Both fuzz handlers run with `fail_on_revert`: an unexpected revert anywhere fails the suite.
 - The full ten-year lifecycle against BNB Chain's real StakeHub on a mainnet fork.
 - A complete sale settled in real USDT on a mainnet fork.
+- The 16 September 2026 pre-audit review and its fixes: see [reviews/2026-09-16-pre-audit-review.md](reviews/2026-09-16-pre-audit-review.md), with one test per fix (`test/ReviewFixes.t.sol`) and the unbond-queue flood replayed against the real StakeHub (`test/fork/UnbondFloodFork.t.sol`).
 - The deployment script run against a mainnet fork with real validators, USDT and USDC, and refusing a plain-wallet
   curator.
 - Voting power: unit tests (deposits, history, fee shares, claims, market escrow) and a fuzzed invariant in both

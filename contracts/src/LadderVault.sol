@@ -50,6 +50,11 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
     uint256 public constant MAX_VALIDATORS = 16;
     /// @notice Unbond requests claimed from StakeHub per validator per call, keeping gas bounded.
     uint256 public constant STAKE_HUB_CLAIM_BATCH = 50;
+    /// @notice Smallest claim, unless it redeems the caller's whole balance of that share id. Filing many tiny claims
+    ///         would otherwise be a cheap way to flood StakeHub's unbond queues.
+    uint256 public constant MIN_CLAIM = 0.001 ether;
+    /// @notice Holds the shares minted for the seed deposit made at deployment. Nobody can redeem them.
+    address public constant DEAD = 0x000000000000000000000000000000000000dEaD;
     /// @notice The curator may redelegate at most this share of staked BNB per window.
     uint256 public constant REDELEGATE_LIMIT_BPS = 1_000;
     uint256 public constant REDELEGATE_WINDOW = 7 days;
@@ -183,7 +188,9 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
         uint256 capRemovedAtEpoch;
     }
 
-    constructor(Config memory cfg) ERC1155("") {
+    /// @dev BNB sent with deployment is a permanent seed: it mints fee-bucket shares to `DEAD`, so the pool is never
+    ///      empty and a donation before the first deposit cannot make shares coarse. Fee shares carry no votes.
+    constructor(Config memory cfg) payable ERC1155("") {
         if (cfg.market == address(0) || cfg.feeRecipient == address(0) || cfg.curator == address(0)) {
             revert ZeroAddress();
         }
@@ -203,7 +210,14 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
             _addValidator(cfg.validators[i]);
         }
 
-        highWaterMark = _price(0, 0);
+        if (msg.value != 0) {
+            uint256[] memory ids = new uint256[](1);
+            uint256[] memory amounts = new uint256[](1);
+            ids[0] = FEE_SHARES_ID;
+            amounts[0] = msg.value * VIRTUAL_SHARES;
+            _update(address(0), DEAD, ids, amounts);
+        }
+        highWaterMark = _price(msg.value, totalSupply());
     }
 
     /// @notice Accepts BNB and does nothing else. StakeHub pays unbonded BNB with only 5,000 gas, so this must
@@ -386,6 +400,10 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
         _accrueFee(0);
         uint256 amount = shares.mulDiv(_totalAssets(0) + VIRTUAL_ASSETS, totalSupply() + VIRTUAL_SHARES);
         if (amount == 0) revert InvalidAmount();
+        // The market is exempt: it redeems sales that matured in escrow, which its own minimum already bounds.
+        if (amount < MIN_CLAIM && msg.sender != MARKET && shares != balanceOf(msg.sender, id)) {
+            revert InvalidAmount();
+        }
 
         _burn(msg.sender, id, shares);
 
@@ -470,6 +488,8 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
 
         bool rescue = _isJailed(from);
         IStakeCredit fromCredit = _credit(from);
+        // A rescue always moves everything, so nobody can leave dust behind that blocks the validator's removal.
+        if (rescue) shares = fromCredit.balanceOf(address(this));
         if (shares == 0 || shares > fromCredit.balanceOf(address(this))) revert InvalidAmount();
         uint256 bnb = fromCredit.getPooledBNBByShares(shares);
         if (!rescue) {
@@ -589,10 +609,12 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
 
     // ---------------------------------------------------------------- internals
 
+    /// @dev Voting power "at" a timepoint is what was held before that second began, so a deposit landing in the
+    ///      same second as a proposal (a later block with the same timestamp) never counts toward it.
     function _pastTimepoint(uint256 timepoint) internal view returns (uint48) {
         uint48 now_ = clock();
         if (timepoint >= now_) revert FutureLookup(timepoint, now_);
-        return SafeCast.toUint48(timepoint);
+        return timepoint == 0 ? 0 : SafeCast.toUint48(timepoint - 1);
     }
 
     function _withdraw(uint256 claimId, address receiver) internal nonReentrant {
@@ -600,9 +622,9 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
         if (c.withdrawn) revert AlreadyWithdrawn();
         if (block.timestamp < c.readyAt) revert ClaimNotReady(c.readyAt);
 
-        // Collect first, so a claim paid from BNB that just finished unbonding never uses liquidity reserved for
-        // another claim.
-        _collect();
+        // Collect only when the reserve cannot already cover this claim, so a StakeHub pause or a long unbond queue
+        // never blocks BNB that is already in the vault.
+        if (reservedLiquidity < c.amount) _collect();
         // Pay only from liquidity reserved for claims, never from the pool's idle BNB.
         if (reservedLiquidity < c.amount) revert InsufficientLiquidity();
 
@@ -615,12 +637,21 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
         if (!ok) revert WithdrawFailed();
     }
 
+    /// @dev Bounded work per validator: it reads only the oldest unbond request (StakeCredit's
+    ///      `claimableUnbondRequest` scans the whole queue, which a flood of tiny claims could push past the block gas
+    ///      limit) and claims at most `STAKE_HUB_CLAIM_BATCH`. A StakeHub that refuses to pay (paused, blacklisted) is
+    ///      skipped rather than blocking every caller; the BNB stays claimable later.
     function _collect() internal {
         for (uint256 i; i < _validators.length; ++i) {
             address op = _validators[i];
-            if (_credit(op).claimableUnbondRequest(address(this)) == 0) continue;
+            IStakeCredit credit = _credit(op);
+            if (credit.pendingUnbondRequest(address(this)) == 0) continue;
+            if (credit.unbondRequest(address(this), 0).unlockTime > block.timestamp) continue;
             uint256 before = address(this).balance;
-            STAKE_HUB.claim(op, STAKE_HUB_CLAIM_BATCH);
+            try STAKE_HUB.claim(op, STAKE_HUB_CLAIM_BATCH) {}
+            catch {
+                continue;
+            }
             uint256 received = address(this).balance - before;
             unbonding -= received > unbonding ? unbonding : received;
             reservedLiquidity += received; // unbonding only ever happens for claims
@@ -676,13 +707,13 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
         uint256 feeBnb = gain.mulDiv(FEE_BPS, BPS);
         uint256 feeShares = feeBnb.mulDiv(supply + VIRTUAL_SHARES, assets + VIRTUAL_ASSETS - feeBnb);
 
-        if (feeShares != 0) {
-            uint256[] memory ids = new uint256[](1);
-            uint256[] memory amounts = new uint256[](1);
-            ids[0] = FEE_SHARES_ID;
-            amounts[0] = feeShares;
-            _update(address(0), feeRecipient, ids, amounts);
-        }
+        // A gain too small to mint a fee share is not charged yet: keep the mark, so it is charged once it adds up.
+        if (feeShares == 0) return;
+        uint256[] memory ids = new uint256[](1);
+        uint256[] memory amounts = new uint256[](1);
+        ids[0] = FEE_SHARES_ID;
+        amounts[0] = feeShares;
+        _update(address(0), feeRecipient, ids, amounts);
         highWaterMark = _price(assets, supply + feeShares);
         emit FeeAccrued(feeShares, feeBnb, highWaterMark);
     }

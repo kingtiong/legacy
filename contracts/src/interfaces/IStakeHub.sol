@@ -45,7 +45,16 @@ interface IStakeHub {
 
 /// @notice Per-validator share token minted by StakeHub. Not transferable; its BNB value grows as rewards accrue.
 interface IStakeCredit {
+    struct UnbondRequest {
+        uint256 shares;
+        uint256 bnbAmount;
+        uint256 unlockTime;
+    }
+
     function balanceOf(address account) external view returns (uint256);
+
+    /// @dev Request `index` in the delegator's queue, oldest first.
+    function unbondRequest(address delegator, uint256 index) external view returns (UnbondRequest memory);
 
     function getPooledBNBByShares(uint256 shares) external view returns (uint256);
 

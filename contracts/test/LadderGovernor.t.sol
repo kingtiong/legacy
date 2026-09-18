@@ -14,7 +14,7 @@ contract VaultVotesTest is DaoTestBase {
     function test_deposit_givesOneVotePerShare() public {
         (, uint256 a, uint256 b) = _deposit(alice, 10 ether);
         assertEq(vault.getVotes(alice), a + b);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         assertEq(vault.getPastTotalSupply(block.timestamp - 1), a + b);
     }
 
@@ -24,8 +24,10 @@ contract VaultVotesTest is DaoTestBase {
         vm.warp(t1 + 100);
         (, uint256 a2, uint256 b2) = _deposit(alice, 5 ether);
         vm.warp(t1 + 200);
-        assertEq(vault.getPastVotes(alice, t1), a1 + b1);
-        assertEq(vault.getPastVotes(alice, t1 - 1), 0);
+        // Power "at" a second is what was held before it began: a deposit counts from the next second on.
+        assertEq(vault.getPastVotes(alice, t1), 0);
+        assertEq(vault.getPastVotes(alice, t1 + 1), a1 + b1);
+        assertEq(vault.getPastVotes(alice, t1 + 100), a1 + b1);
         assertEq(vault.getPastVotes(alice, t1 + 150), a1 + b1 + a2 + b2);
     }
 
@@ -54,7 +56,7 @@ contract VaultVotesTest is DaoTestBase {
         vm.prank(address(timelock));
         vault.safeTransferFrom(address(timelock), bob, 2, fees, "");
         assertEq(vault.getVotes(bob), 0, "fee shares carry no votes wherever they go");
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         assertEq(vault.getPastTotalSupply(block.timestamp - 1), a + b, "total votes exclude fee shares");
     }
 
@@ -64,7 +66,7 @@ contract VaultVotesTest is DaoTestBase {
         vm.prank(alice);
         vault.requestClaim(_idA(0), a);
         assertEq(vault.getVotes(alice), b);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         assertEq(vault.getPastTotalSupply(block.timestamp - 1), b);
     }
 
@@ -94,7 +96,7 @@ contract VaultVotesTest is DaoTestBase {
         (, uint256 a1, uint256 b1) = _deposit(alice, 10 ether);
         (, uint256 a2, uint256 b2) = _deposit(bob, 3 ether);
         _earnFees();
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         uint256 total = vault.getPastTotalSupply(block.timestamp - 1);
         assertEq(total, a1 + b1 + a2 + b2);
         assertEq(total, vault.totalSupply() - vault.totalSupply(2));
@@ -153,7 +155,7 @@ contract LadderGovernorTest is DaoTestBase {
         _deposit(alice, 10 ether);
         _deposit(bob, 5 ether);
         uint256 fees = _earnFees();
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
 
         uint256 id = _propose(
             alice,
@@ -177,7 +179,7 @@ contract LadderGovernorTest is DaoTestBase {
     function test_lifecycle_claimFeesToBnbThenSendBnb() public {
         _deposit(alice, 10 ether);
         uint256 fees = _earnFees();
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
 
         // Proposal 1: redeem the fee shares. The claim is paid to the treasury itself.
         uint256 id =
@@ -199,7 +201,7 @@ contract LadderGovernorTest is DaoTestBase {
 
     function test_propose_belowThresholdReverts() public {
         _deposit(carol, 0.5 ether); // 5e20 shares, below the 1e21 threshold
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         (address[] memory t, uint256[] memory v, bytes[] memory c) = _proposal(grantee, 0, "");
         uint256 votes = vault.getVotes(carol);
         vm.prank(carol);
@@ -212,7 +214,7 @@ contract LadderGovernorTest is DaoTestBase {
     function test_quorumNotMet_defeated() public {
         _deposit(alice, 1 ether);
         _deposit(bob, 20 ether);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         uint256 id = _propose(alice, grantee, 0, "", "tiny turnout");
         _toVoting(id);
         _vote(alice, id, 1); // alice holds under 5% of votes
@@ -223,7 +225,7 @@ contract LadderGovernorTest is DaoTestBase {
     function test_againstVotes_defeat() public {
         _deposit(alice, 10 ether);
         _deposit(bob, 11 ether);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         uint256 id = _propose(alice, grantee, 0, "", "contested");
         _toVoting(id);
         _vote(alice, id, 1);
@@ -235,11 +237,11 @@ contract LadderGovernorTest is DaoTestBase {
     function test_depositAfterProposal_doesNotCount() public {
         _deposit(alice, 10 ether);
         _deposit(bob, 10 ether);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         uint256 id = _propose(alice, grantee, 0, "", "snapshot test");
 
         // Carol sees the proposal and deposits a lot straight after it.
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         vm.prank(carol);
         vault.deposit{value: 1_000 ether}(carol, 7_000);
         _toVoting(id);
@@ -251,7 +253,7 @@ contract LadderGovernorTest is DaoTestBase {
     function test_marketSale_cannotVoteTwice() public {
         (,, uint256 b) = _deposit(alice, 10 ether);
         _deposit(bob, 1 ether);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         uint256 id = _propose(alice, grantee, 0, "", "double vote");
         _toVoting(id);
         uint256 aliceWeight = vault.getVotes(alice);
@@ -283,7 +285,7 @@ contract LadderGovernorTest is DaoTestBase {
     function test_lateQuorum_extendsTheVote() public {
         _deposit(alice, 10 ether);
         _deposit(bob, 100 ether);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         uint256 id = _propose(alice, grantee, 0, "", "late swing");
         _toVoting(id);
         uint256 deadline = governor.proposalDeadline(id);
@@ -297,7 +299,7 @@ contract LadderGovernorTest is DaoTestBase {
     function test_governance_cannotMoveDepositorShares() public {
         (, uint256 a,) = _deposit(alice, 10 ether);
         _deposit(bob, 10 ether);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         uint256 id = _propose(
             bob,
             address(vault),
@@ -322,7 +324,7 @@ contract LadderGovernorTest is DaoTestBase {
 
     function test_governance_canHandTheTreasuryToANewDao() public {
         _deposit(alice, 10 ether);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         address next = makeAddr("nextDao");
         uint256 id = _propose(
             alice, address(vault), 0, abi.encodeCall(vault.transferFeeRecipient, (next)), "Migrate treasury"
@@ -337,7 +339,7 @@ contract LadderGovernorTest is DaoTestBase {
 
     function test_curator_addValidatorByVote() public {
         _deposit(alice, 10 ether);
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         address v4 = makeAddr("validator4");
         hub.createValidator{value: 2_000 ether}(v4);
 
@@ -354,7 +356,7 @@ contract LadderGovernorTest is DaoTestBase {
     function test_curator_redelegateByVoteStaysRateLimited() public {
         _deposit(alice, 10 ether);
         vault.flush();
-        vm.warp(block.timestamp + 1);
+        vm.warp(block.timestamp + 2);
         address from = vault.validators()[0];
         MockStakeCredit credit = _credit(from);
         if (credit.balanceOf(address(vault)) == 0) from = vault.validators()[1];
