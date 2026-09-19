@@ -34,10 +34,11 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
 
     IStakeHub public constant STAKE_HUB = IStakeHub(0x0000000000000000000000000000000000002002);
 
-    /// @notice One cohort. The average Gregorian month: 365.2425 days / 12.
-    uint256 public constant EPOCH = 2_629_746;
-    /// @notice A cohort matures this many epochs after it ends: ten years.
-    uint256 public constant LOCK_EPOCHS = 120;
+    /// @notice Length of one cohort in seconds. Production: the average Gregorian month, 365.2425 days / 12 =
+    ///         2,629,746 s. A short value exists only for test deployments that replay ten years in hours.
+    uint256 public immutable EPOCH;
+    /// @notice A cohort matures this many epochs after it ends. Production: 120, i.e. ten years.
+    uint256 public immutable LOCK_EPOCHS;
 
     uint256 public constant BPS = 10_000;
     uint256 public constant MIN_RETIREMENT_BPS = 7_000;
@@ -186,6 +187,8 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
         uint256 capInitial;
         uint256 capGrowthPerEpoch;
         uint256 capRemovedAtEpoch;
+        uint256 epoch;
+        uint256 lockEpochs;
     }
 
     /// @dev BNB sent with deployment is a permanent seed: it mints fee-bucket shares to `DEAD`, so the pool is never
@@ -195,8 +198,11 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
             revert ZeroAddress();
         }
         if (cfg.minDeposit == 0 || cfg.maxDeposit < cfg.minDeposit) revert InvalidAmount();
+        if (cfg.epoch == 0 || cfg.lockEpochs == 0) revert InvalidAmount();
 
         GENESIS = block.timestamp;
+        EPOCH = cfg.epoch;
+        LOCK_EPOCHS = cfg.lockEpochs;
         MARKET = cfg.market;
         MIN_DEPOSIT = cfg.minDeposit;
         MAX_DEPOSIT = cfg.maxDeposit;

@@ -524,3 +524,7 @@ textarea:focus{border-color:var(--teal);outline:none}
   .eyebrow{font-size:.75rem}
   .pill{font-size:.7rem}
 }
+
+/* ---------- ten-hour test edition ---------- */
+.test-banner{background:#B24A25;color:#fff;text-align:center;font:600 .82rem/1.4 var(--sans);padding:.5rem 1rem;letter-spacing:.02em}
+.test-banner a{color:#fff}

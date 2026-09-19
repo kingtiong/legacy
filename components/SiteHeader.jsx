@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { NAME } from '../lib/config';
 import { PAGES } from '../lib/pages';
+import { BASE_PATH, TEST_MODE } from '../lib/protocol';
 
 
 export default function SiteHeader() {
@@ -28,10 +29,16 @@ export default function SiteHeader() {
 
   return (
     <>
+    {TEST_MODE && (
+      <div className="test-banner" role="note">
+        TEST EDITION · 10-hour lock · max 0.05 BNB · real BNB on BNB Chain ·{' '}
+        <a href="https://decadium.club">not the real product</a>
+      </div>
+    )}
     <header ref={header} className={`topbar${open ? ' is-open' : ''}`}>
       <div className="wrap inner">
         <Link className="brand" href="/" aria-label={`${NAME} home`}>
-          <img className="brand-logo" src="/brand/decadium-wordmark.png" alt={NAME} width="1334" height="180" />
+          <img className="brand-logo" src={`${BASE_PATH}/brand/decadium-wordmark.png`} alt={NAME} width="1334" height="180" />
         </Link>
         <button ref={button} type="button" className="menu-btn" aria-expanded={open} aria-controls="site-menu"
           onClick={() => setOpen((v) => !v)}>

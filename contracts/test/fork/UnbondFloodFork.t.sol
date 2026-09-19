@@ -29,7 +29,9 @@ contract UnbondFloodForkTest is Test {
                 maxDeposit: 1_000 ether,
                 capInitial: 10_000 ether,
                 capGrowthPerEpoch: 0,
-                capRemovedAtEpoch: 24
+                capRemovedAtEpoch: 24,
+                epoch: 2_629_746,
+                lockEpochs: 120
             })
         );
         vm.etch(alice, "");

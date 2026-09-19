@@ -6,7 +6,7 @@ import { useAccount, useBalance } from 'wagmi';
 import WalletGate from './WalletGate';
 import TxButton from './TxButton';
 import { VAULT, useVaultStats, useChainTime, maturityOf, cohortStart, bnb, day, month, parseAmount } from '../../lib/vaultHooks';
-import { CHAIN_ID, DEPOSITS_PAUSED } from '../../lib/protocol';
+import { CHAIN_ID, DEPOSITS_PAUSED, TEST_MODE } from '../../lib/protocol';
 
 const GAS_BUFFER = 10n ** 15n; // 0.001 BNB left for network fees
 
@@ -17,7 +17,7 @@ export default function DepositForm() {
         <p className="eyebrow">Deposit</p>
         <h1 className="h1-page">Add this month’s rung</h1>
         <p className="lead">
-          Each deposit is locked for ten years. At least 70% goes to retirement, which nobody can touch. The rest is
+          {TEST_MODE ? 'Test edition: each deposit is locked for 10 hours instead of ten years.' : 'Each deposit is locked for ten years.'} At least 70% goes to retirement, which nobody can touch. The rest is
           your emergency bucket, which you can sell to another person if life happens.
         </p>
       </header>
@@ -126,7 +126,7 @@ function Form() {
         </label>
         <TxButton
           className="btn lg"
-          label={amount ? `Lock ${bnb(amount)} for ten years` : 'Enter an amount'}
+          label={amount ? `Lock ${bnb(amount)} for ${TEST_MODE ? '10 hours' : 'ten years'}` : 'Enter an amount'}
           disabled={!amount || Boolean(problem) || !understood}
           request={amount && !problem ? { ...VAULT, functionName: 'deposit', args: [address, BigInt(retirement * 100)], value: amount } : null}
           onDone={() => {

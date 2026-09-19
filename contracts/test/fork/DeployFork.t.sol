@@ -51,7 +51,9 @@ contract DeployForkTest is Test {
                 maxDeposit: 10 ether,
                 capInitial: 100 ether,
                 capGrowthPerEpoch: 50 ether,
-                capRemovedAtEpoch: 36
+                capRemovedAtEpoch: 36,
+                epoch: 2_629_746,
+                lockEpochs: 120
             })
         );
         market = new CohortMarket(

@@ -38,6 +38,34 @@ contract Deploy is Script {
     uint256 internal constant TIMELOCK_DELAY = 2 days;
     /// @notice Permanent seed deposited at deployment (shares held by nobody), so the pool is never empty.
     uint256 internal constant SEED = 0.001 ether;
+    /// @notice Ten years: 120 cohorts of one average Gregorian month.
+    uint256 internal constant EPOCH = 2_629_746;
+    uint256 internal constant LOCK_EPOCHS = 120;
+
+    struct Params {
+        uint256 minDeposit;
+        uint256 maxDeposit;
+        uint256 capInitial;
+        uint256 capGrowthPerEpoch;
+        uint256 capRemovedAtEpoch;
+        uint256 epoch;
+        uint256 lockEpochs;
+        uint256 seed;
+    }
+
+    /// @notice The production launch parameters. `DeployTest` overrides these, and nothing else.
+    function _params() internal pure virtual returns (Params memory) {
+        return Params({
+            minDeposit: MIN_DEPOSIT,
+            maxDeposit: MAX_DEPOSIT,
+            capInitial: CAP_INITIAL,
+            capGrowthPerEpoch: CAP_GROWTH_PER_EPOCH,
+            capRemovedAtEpoch: CAP_REMOVED_AT_EPOCH,
+            epoch: EPOCH,
+            lockEpochs: LOCK_EPOCHS,
+            seed: SEED
+        });
+    }
 
     address internal constant BSC_USDT = 0x55d398326f99059fF775485246999027B3197955;
     address internal constant BSC_USDC = 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d;
@@ -98,17 +126,20 @@ contract Deploy is Script {
         internal
         returns (LadderVault)
     {
-        return new LadderVault{value: SEED}(
+        Params memory p = _params();
+        return new LadderVault{value: p.seed}(
             LadderVault.Config({
                 market: market,
                 feeRecipient: treasury,
                 curator: treasury,
                 validators: validators,
-                minDeposit: MIN_DEPOSIT,
-                maxDeposit: MAX_DEPOSIT,
-                capInitial: CAP_INITIAL,
-                capGrowthPerEpoch: CAP_GROWTH_PER_EPOCH,
-                capRemovedAtEpoch: CAP_REMOVED_AT_EPOCH
+                minDeposit: p.minDeposit,
+                maxDeposit: p.maxDeposit,
+                capInitial: p.capInitial,
+                capGrowthPerEpoch: p.capGrowthPerEpoch,
+                capRemovedAtEpoch: p.capRemovedAtEpoch,
+                epoch: p.epoch,
+                lockEpochs: p.lockEpochs
             })
         );
     }
@@ -121,7 +152,10 @@ contract Deploy is Script {
         LadderGovernor governor
     ) internal view {
         require(vault.MARKET() == address(market), "vault market mismatch");
-        require(vault.balanceOf(vault.DEAD(), vault.FEE_SHARES_ID()) == SEED * 1e3, "seed missing");
+        Params memory p = _params();
+        require(vault.balanceOf(vault.DEAD(), vault.FEE_SHARES_ID()) == p.seed * 1e3, "seed missing");
+        require(vault.EPOCH() == p.epoch && vault.LOCK_EPOCHS() == p.lockEpochs, "lock length mismatch");
+        require(vault.MAX_DEPOSIT() == p.maxDeposit && vault.CAP_INITIAL() == p.capInitial, "limits mismatch");
         require(address(market.VAULT()) == address(vault), "market vault mismatch");
         require(vault.feeRecipient() == address(timelock), "fee recipient is not the DAO treasury");
         require(vault.curator() == address(timelock), "curator is not the DAO treasury");
@@ -141,5 +175,24 @@ contract Deploy is Script {
         v[1] = FIGMENT;
         v[2] = NODEREAL;
         v[3] = THE48CLUB;
+    }
+}
+
+/// @title A ten-hour test edition, for trying the full product with small real BNB
+/// @notice Identical contracts and deployment, but each "month" lasts 5 minutes, so a deposit unlocks after 120 of
+///         them: 10 hours. Deposits are limited to 0.05 BNB and the pool to 1 BNB. Never link it as the product.
+///           forge script script/Deploy.s.sol:DeployTest --rpc-url bsc --account <keystore> --broadcast
+contract DeployTest is Deploy {
+    function _params() internal pure override returns (Params memory) {
+        return Params({
+            minDeposit: 0.001 ether,
+            maxDeposit: 0.05 ether,
+            capInitial: 1 ether,
+            capGrowthPerEpoch: 0,
+            capRemovedAtEpoch: type(uint256).max,
+            epoch: 5 minutes,
+            lockEpochs: 120,
+            seed: 0.0001 ether
+        });
     }
 }

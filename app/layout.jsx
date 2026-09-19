@@ -14,7 +14,10 @@ const OG_IMAGE = {
   alt: `${NAME}: Where is the crypto you earned ten years ago? And how much of this year’s will still be yours in ten years?`,
 };
 
+import { TEST_MODE } from '../lib/protocol';
+
 export const metadata = {
+  ...(TEST_MODE ? { robots: { index: false, follow: false } } : {}),
   title: { default: `${NAME} — ${TAGLINE}`, template: `%s · ${NAME}` },
   description: DESCRIPTION,
   openGraph: {

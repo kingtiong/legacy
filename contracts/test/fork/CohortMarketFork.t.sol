@@ -40,7 +40,9 @@ contract CohortMarketForkTest is Test {
                 maxDeposit: 100 ether,
                 capInitial: 1_000 ether,
                 capGrowthPerEpoch: 500 ether,
-                capRemovedAtEpoch: 24
+                capRemovedAtEpoch: 24,
+                epoch: 2_629_746,
+                lockEpochs: 120
             })
         );
         market = new CohortMarket(vault, USDT, USDC);

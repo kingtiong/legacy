@@ -50,7 +50,9 @@ abstract contract VaultTestBase is Test {
                 maxDeposit: MAX_DEPOSIT,
                 capInitial: CAP_INITIAL,
                 capGrowthPerEpoch: CAP_GROWTH,
-                capRemovedAtEpoch: CAP_REMOVED_AT
+                capRemovedAtEpoch: CAP_REMOVED_AT,
+                epoch: 2_629_746,
+                lockEpochs: 120
             })
         );
 
