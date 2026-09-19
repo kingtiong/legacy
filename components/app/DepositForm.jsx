@@ -9,6 +9,8 @@ import DepositTerms from './DepositTerms';
 import { VAULT, useVaultStats, useChainTime, maturityOf, cohortStart, bnb, day, month, parseAmount } from '../../lib/vaultHooks';
 import { CHAIN_ID, DEPOSITS_PAUSED, TEST_MODE, EXPLORER, VAULT_ADDRESS } from '../../lib/protocol';
 
+// Every deposit is split 70% retirement / 30% emergency; depositors do not choose.
+const RETIREMENT_BPS = 7_000;
 const GAS_BUFFER = 10n ** 15n; // 0.001 BNB left for network fees
 
 export default function DepositForm() {
@@ -18,7 +20,7 @@ export default function DepositForm() {
         <p className="eyebrow">Deposit</p>
         <h1 className="h1-page">Add this month’s rung</h1>
         <p className="lead">
-          {TEST_MODE ? 'Test edition: each deposit is locked for 10 hours instead of ten years.' : 'Each deposit is locked for ten years.'} At least 70% goes to retirement, which nobody can touch. The rest is
+          {TEST_MODE ? 'Test edition: each deposit is locked for 10 hours instead of ten years.' : 'Each deposit is locked for ten years.'} 70% goes to retirement, which nobody can touch. The other 30% is
           your emergency bucket, which you can sell to another person if life happens.
         </p>
       </header>
@@ -47,7 +49,6 @@ function Form() {
   const [now] = useChainTime();
   const balance = useBalance({ address, chainId: CHAIN_ID, query: { refetchInterval: 30_000 } });
   const [text, setText] = useState('');
-  const [retirement, setRetirement] = useState(70);
   const [stage, setStage] = useState('form'); // form -> review -> done
   const [lang, setLang] = useState('en');
   const [done, setDone] = useState(null);
@@ -57,7 +58,7 @@ function Form() {
   const amount = parseAmount(text);
   const cohort = stats.currentCohort;
   const unlocks = maturityOf(stats, cohort);
-  const toA = amount ? (amount * BigInt(retirement)) / 100n : 0n;
+  const toA = amount ? (amount * BigInt(RETIREMENT_BPS)) / 10_000n : 0n;
   const toB = amount ? amount - toA : 0n;
   const wallet = balance.data?.value;
 
@@ -91,14 +92,14 @@ function Form() {
 
   if (stage === 'review' && amount && !problem) {
     return (
-      <DepositTerms amount={amount} toA={toA} toB={toB} retirement={retirement} unlocks={unlocks} stats={stats}
+      <DepositTerms amount={amount} toA={toA} toB={toB} unlocks={unlocks} stats={stats}
         account={address} lang={lang} setLang={setLang} onBack={() => setStage('form')}
         onAccept={(accepted) => (
           <TxButton
             className="btn lg"
             label={lang === 'zh' ? `确认并锁定 ${bnb(amount)}` : `Confirm and lock ${bnb(amount)}`}
             disabled={!accepted}
-            request={{ ...VAULT, functionName: 'deposit', args: [address, BigInt(retirement * 100)], value: amount }}
+            request={{ ...VAULT, functionName: 'deposit', args: [address, BigInt(RETIREMENT_BPS)], value: amount }}
             onDone={(receipt) => {
               setDone({ amount, cohort, unlocks, hash: receipt?.transactionHash });
               refetch();
@@ -125,12 +126,9 @@ function Form() {
           </p>
         </div>
         <div className="field">
-          <label htmlFor="split">
-            Split <span className="rangeval">{retirement}% retirement · {100 - retirement}% emergency</span>
-          </label>
-          <input id="split" type="range" min="70" max="100" step="5" value={retirement}
-            onChange={(e) => setRetirement(Number(e.target.value))} />
-          <p className="hint">Retirement can never be sold or moved before it unlocks. Emergency can be sold, only through the market.</p>
+          <label>Split (fixed)</label>
+          <p className="split-fixed"><b>70% retirement</b> · <b>30% emergency</b></p>
+          <p className="hint">Every deposit is split the same way. Retirement can never be sold or moved before it unlocks. Emergency can only be sold, through the market.</p>
         </div>
         {problem && <p className="formmsg err">{problem}</p>}
       </section>
@@ -152,7 +150,14 @@ function Form() {
         <button type="button" className="btn lg" disabled={!amount || Boolean(problem)} onClick={() => { setStage('review'); window.scrollTo(0, 0); }}>
           {amount ? `Review terms for ${bnb(amount)}` : 'Enter an amount'}
         </button>
-        <p className="hint">Vault: <a href={`${EXPLORER}/address/${VAULT_ADDRESS}`} target="_blank" rel="noreferrer">{VAULT_ADDRESS}</a></p>
+        <div className="vault-box">
+          <span className="k">Your BNB goes to the Decadium vault</span>
+          <span className="vault-addr">{VAULT_ADDRESS}</span>
+          <span className="vault-links">
+            <a className="btn ghost sm" href={`${EXPLORER}/address/${VAULT_ADDRESS}`} target="_blank" rel="noreferrer">View on BscScan ↗</a>
+            <a className="btn ghost sm" href={`https://repo.sourcify.dev/56/${VAULT_ADDRESS}`} target="_blank" rel="noreferrer">Verified on Sourcify ↗</a>
+          </span>
+        </div>
       </section>
     </div>
   );

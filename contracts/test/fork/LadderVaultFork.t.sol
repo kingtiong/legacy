@@ -49,7 +49,7 @@ contract LadderVaultForkTest is Test {
         vm.prank(alice);
         (uint256 cohort, uint256 a, uint256 b) = vault.deposit{value: 5 ether}(alice, 7_000);
         vm.prank(bob);
-        vault.deposit{value: 3 ether}(bob, 10_000);
+        vault.deposit{value: 3 ether}(bob, 7_000);
 
         (address target, uint256 delegated) = vault.flush();
         assertEq(delegated, 8 ether);

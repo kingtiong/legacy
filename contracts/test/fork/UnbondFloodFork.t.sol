@@ -40,7 +40,7 @@ contract UnbondFloodForkTest is Test {
 
     function test_floodedQueueKeepsWithdrawalsBounded() public {
         vm.prank(alice);
-        (uint256 cohort, uint256 a,) = vault.deposit{value: 20 ether}(alice, 10_000);
+        (uint256 cohort, uint256 a,) = vault.deposit{value: 20 ether}(alice, 7_000);
         vault.flush();
         vm.warp(vault.maturityOf(cohort));
 

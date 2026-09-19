@@ -8,7 +8,7 @@ import { EXPLORER, GOVERNOR_ADDRESS, MARKET_ADDRESS, TEST_MODE, TREASURY_ADDRESS
 const SOURCIFY = (a) => `https://repo.sourcify.dev/56/${a}`;
 
 /** Everything a depositor agrees to, in plain words, before the wallet is asked to sign. */
-export default function DepositTerms({ amount, toA, toB, retirement, unlocks, stats, account, lang, setLang, children, onBack, onAccept }) {
+export default function DepositTerms({ amount, toA, toB, unlocks, stats, account, lang, setLang, children, onBack, onAccept }) {
   const [ticks, setTicks] = useState([false, false, false, false]);
   const t = lang === 'zh' ? zh : en;
   const all = ticks.every(Boolean);
@@ -31,8 +31,8 @@ export default function DepositTerms({ amount, toA, toB, retirement, unlocks, st
         <dl className="kv">
           <div><dt>{t.from}</dt><dd className="mono-sm">{account}</dd></div>
           <div><dt>{t.amount}</dt><dd className="tnum"><b>{bnb(amount)}</b></dd></div>
-          <div><dt>{t.retirement}</dt><dd className="tnum">{bnb(toA)} ({retirement}%)</dd></div>
-          <div><dt>{t.emergency}</dt><dd className="tnum">{bnb(toB)} ({100 - retirement}%)</dd></div>
+          <div><dt>{t.retirement}</dt><dd className="tnum">{bnb(toA)} (70%)</dd></div>
+          <div><dt>{t.emergency}</dt><dd className="tnum">{bnb(toB)} (30%)</dd></div>
           <div><dt>{t.unlocks}</dt><dd><b>{unlockText}</b>{TEST_MODE && <span className="muted small"> · {t.testNote}</span>}</dd></div>
           <div><dt>{t.network}</dt><dd>BNB Smart Chain (56)</dd></div>
         </dl>
@@ -123,9 +123,9 @@ const en = {
   lock: 'Locked for 10 years.',
   lockTest: 'Locked for 10 years (10 hours in this test edition).',
   lockBody: (d) => `Your whole deposit unlocks on ${d}. Before that, nobody can withdraw it: not you, not the team, not a DAO vote, not for any fee.`,
-  r1h: 'Retirement part (at least 70%) cannot move at all.',
+  r1h: 'Retirement part (70%) cannot move at all.',
   r1: 'It cannot be withdrawn, sold, transferred or used as collateral until it unlocks.',
-  r2h: 'Emergency part (at most 30%) is the only early exit, and it is not guaranteed.',
+  r2h: 'Emergency part (30%) is the only early exit, and it is not guaranteed.',
   r2: 'You can only sell it to another person through the Decadium market, paid in USDT or USDC, at a price a buyer offers. Expect a discount to its BNB value, possibly a large one, and there may be no buyer at all. After you accept an offer you have 7 days to cancel; after that the sale is final. The market closes 7 days before your unlock date.',
   r3h: 'Staking.',
   r3: 'Deposits are staked with BNB Chain validators once 1 BNB or more is waiting. You keep 70% of the rewards, compounding inside your shares; 30% goes to the Decadium DAO treasury. Rewards vary and are not guaranteed.',
@@ -154,11 +154,11 @@ const en = {
   cMarket: 'Market',
   cGov: 'DAO governor',
   cTreasury: 'DAO treasury',
-  verified: 'Source verified',
+  verified: 'Verified on Sourcify',
   source: 'Open-source code:',
   confirmTitle: 'Confirm',
   c1: (d) => `I understand this BNB is locked until ${d}, and nobody can unlock it early.`,
-  c2: 'I understand that only the emergency part (at most 30%) can be exited early, only by selling it to another person for USDT or USDC, likely at a discount, with no guaranteed buyer.',
+  c2: 'I understand that only the emergency part (30%) can be exited early, only by selling it to another person for USDT or USDC, likely at a discount, with no guaranteed buyer.',
   c3: 'I understand the contracts are unaudited and I could lose this deposit.',
   c4: (v) => `I checked that I am sending to the vault ${v} on BNB Smart Chain.`,
   tickAll: 'Tick all four boxes to continue.',
@@ -179,9 +179,9 @@ const zh = {
   lock: '锁定 10 年。',
   lockTest: '锁定 10 年（此测试版为 10 小时）。',
   lockBody: (d) => `你的整笔存款在 ${d} 解锁。在那之前，没有人能提走：你不行、团队不行、DAO 投票不行，付任何费用也不行。`,
-  r1h: '退休部分（至少 70%）完全不能动。',
+  r1h: '退休部分（70%）完全不能动。',
   r1: '解锁前不能提取、不能出售、不能转让，也不能拿去抵押。',
-  r2h: '应急部分（最多 30%）是唯一的提前退出方式，而且没有保证。',
+  r2h: '应急部分（30%）是唯一的提前退出方式，而且没有保证。',
   r2: '只能通过 Decadium 市场卖给别人，收 USDT 或 USDC，价格由买家出价决定。通常会低于它的 BNB 价值（折价），折扣可能很大，也可能完全没有买家。接受报价后有 7 天冷静期可以取消，之后交易就不能反悔。在你的解锁日前 7 天，市场会关闭。',
   r3h: '质押。',
   r3: '当等待中的 BNB 达到 1 BNB 或以上，存款会质押给 BNB Chain 验证节点。收益的 70% 归你，在份额里继续复利；30% 进入 Decadium DAO 金库。收益会变动，没有保证。',
@@ -210,11 +210,11 @@ const zh = {
   cMarket: '市场',
   cGov: 'DAO 治理',
   cTreasury: 'DAO 金库',
-  verified: '源代码已验证',
+  verified: '已在 Sourcify 验证',
   source: '开源代码：',
   confirmTitle: '确认',
   c1: (d) => `我明白这笔 BNB 会锁定到 ${d}，没有人能提早解锁。`,
-  c2: '我明白只有应急部分（最多 30%）可以提前退出，而且只能卖给别人换 USDT 或 USDC，通常是折价，也不保证有买家。',
+  c2: '我明白只有应急部分（30%）可以提前退出，而且只能卖给别人换 USDT 或 USDC，通常是折价，也不保证有买家。',
   c3: '我明白合约未经审计，我可能会损失这笔存款。',
   c4: (v) => `我已确认是发送到 BNB Smart Chain 上的金库 ${v}。`,
   tickAll: '勾选全部四项才能继续。',

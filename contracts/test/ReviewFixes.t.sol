@@ -112,14 +112,15 @@ contract ReviewFixesTest is VaultTestBase {
         vm.expectRevert(LadderVault.InvalidAmount.selector);
         vault.requestClaim(_idA(cohort), tiny);
 
-        // A small position can always be redeemed in full.
-        vm.prank(bob);
-        (uint256 c2,,) = vault.deposit{value: 0.01 ether}(bob, 9_900); // 1% emergency: 0.0001 BNB
+        // A remainder below the minimum can always be redeemed in full.
+        (uint256 c2,, uint256 bobB) = _deposit(bob, 0.01 ether); // 0.003 BNB emergency
         _warpToMaturity(c2);
-        uint256 bobB = vault.balanceOf(bob, _idB(c2));
-        assertLt(vault.previewRedeem(bobB), vault.MIN_CLAIM());
         vm.prank(bob);
-        vault.requestClaim(_idB(c2), bobB);
+        vault.requestClaim(_idB(c2), (bobB * 5) / 6); // 0.0025 BNB, above the minimum
+        uint256 rest = vault.balanceOf(bob, _idB(c2));
+        assertLt(vault.previewRedeem(rest), vault.MIN_CLAIM());
+        vm.prank(bob);
+        vault.requestClaim(_idB(c2), rest);
     }
 
     // ================================================================ L-1: seed and donations

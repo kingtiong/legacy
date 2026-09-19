@@ -50,20 +50,19 @@ contract LadderVaultTest is VaultTestBase {
         assertGe(vault.maturityOf(0) - (vault.GENESIS() + vault.EPOCH() - 1), tenYears);
     }
 
-    function test_deposit_fullRetirementSplitMintsNoEmergencyShares() public {
+    function test_deposit_splitIsAlwaysSeventyThirty() public {
         vm.prank(alice);
-        (, uint256 a, uint256 b) = vault.deposit{value: 1 ether}(alice, 10_000);
-        assertGt(a, 0);
-        assertEq(b, 0);
-        assertEq(vault.balanceOf(alice, _idB(0)), 0);
+        (, uint256 a, uint256 b) = vault.deposit{value: 1 ether}(alice, 7_000);
+        assertEq(a * 3, b * 7, "exactly 70/30");
     }
 
-    function test_deposit_rejectsSofterSplit() public {
+    function test_deposit_rejectsAnyOtherSplit() public {
+        uint256[5] memory splits = [uint256(6_999), 7_001, 8_000, 10_000, 0];
         vm.startPrank(alice);
-        vm.expectRevert(LadderVault.InvalidSplit.selector);
-        vault.deposit{value: 1 ether}(alice, 6_999);
-        vm.expectRevert(LadderVault.InvalidSplit.selector);
-        vault.deposit{value: 1 ether}(alice, 10_001);
+        for (uint256 i; i < splits.length; ++i) {
+            vm.expectRevert(LadderVault.InvalidSplit.selector);
+            vault.deposit{value: 1 ether}(alice, splits[i]);
+        }
         vm.stopPrank();
     }
 

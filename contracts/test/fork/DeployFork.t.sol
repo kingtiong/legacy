@@ -88,7 +88,7 @@ contract DeployForkTest is Test {
         vm.prank(alice);
         vault.deposit{value: 10 ether}(alice, 7_000);
         vm.prank(bob);
-        vault.deposit{value: 4 ether}(bob, 8_000);
+        vault.deposit{value: 4 ether}(bob, 7_000);
         vault.flush(); // staked with a real launch validator
         vm.deal(address(timelock), 1 ether); // treasury BNB, as if fees had been redeemed
         vm.warp(block.timestamp + 2);

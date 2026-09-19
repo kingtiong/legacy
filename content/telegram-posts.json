@@ -47,8 +47,8 @@
       "id": "explain-7030",
       "style": "explain",
       "approved": false,
-      "en": "How Decadium works, simple version:\n\n• Every deposit is locked for 10 years\n• At least 70% goes to retirement. Nobody can touch it, not even you\n• Up to 30% is emergency. If life happens, you can sell it to another person for USDT or USDC\n• All of it is staked, and rewards compound inside\n\n{link}",
-      "zh": "Decadium 怎么运作？简单讲：\n\n• 每一笔存款锁十年\n• 至少70%是退休部分，谁都动不了，包括你自己\n• 最多30%是应急部分，真的有急用，可以卖给别人换USDT或USDC\n• 全部拿去质押，收益在里面继续滚\n\n{link}"
+      "en": "How Decadium works, simple version:\n\n• Every deposit is locked for 10 years\n• 70% goes to retirement. Nobody can touch it, not even you\n• 30% is emergency. If life happens, you can sell it to another person for USDT or USDC\n• All of it is staked, and rewards compound inside\n\n{link}",
+      "zh": "Decadium 怎么运作？简单讲：\n\n• 每一笔存款锁十年\n• 70%是退休部分，谁都动不了，包括你自己\n• 30%是应急部分，真的有急用，可以卖给别人换USDT或USDC\n• 全部拿去质押，收益在里面继续滚\n\n{link}"
     },
     {
       "id": "history-covid",
@@ -110,8 +110,8 @@
       "id": "explain-market",
       "style": "explain",
       "approved": false,
-      "en": "\"What if I really need money before 10 years?\"\n\nYour emergency part (up to 30%) can be sold to another person, for USDT or USDC.\nAfter you accept an offer, you get 7 days cooling-off to change your mind.\n\nYour retirement part (70%) stays locked. That part is for future you.",
-      "zh": "“如果十年内真的急需用钱怎么办？”\n\n你的应急部分（最多30%）可以卖给别人，换USDT或USDC。\n接受报价之后，你还有7天冷静期，可以反悔。\n\n退休部分（70%）继续锁着。那是留给未来的你的。"
+      "en": "\"What if I really need money before 10 years?\"\n\nYour emergency part (30%) can be sold to another person, for USDT or USDC.\nAfter you accept an offer, you get 7 days cooling-off to change your mind.\n\nYour retirement part (70%) stays locked. That part is for future you.",
+      "zh": "“如果十年内真的急需用钱怎么办？”\n\n你的应急部分（30%）可以卖给别人，换USDT或USDC。\n接受报价之后，你还有7天冷静期，可以反悔。\n\n退休部分（70%）继续锁着。那是留给未来的你的。"
     },
     {
       "id": "discipline-checking",
@@ -257,8 +257,8 @@
       "id": "explain-small",
       "style": "explain",
       "approved": false,
-      "en": "You don't need a lot to start.\n\nMinimum deposit: 0.01 BNB.\nChoose your split: at least 70% retirement, up to 30% emergency.\nDo it again next month. And the month after.\n\nSmall and steady beats big and nervous.\n{link}",
-      "zh": "不需要很多钱才能开始。\n\n最低存款：0.01 BNB。\n自己选比例：至少70%退休，最多30%应急。\n下个月再存，再下个月也存。\n\n小而稳定，胜过大而紧张。\n{link}"
+      "en": "You don't need a lot to start.\n\nMinimum deposit: 0.01 BNB.\nEvery deposit: 70% retirement, 30% emergency.\nDo it again next month. And the month after.\n\nSmall and steady beats big and nervous.\n{link}",
+      "zh": "不需要很多钱才能开始。\n\n最低存款：0.01 BNB。\n每笔存款：70%退休，30%应急。\n下个月再存，再下个月也存。\n\n小而稳定，胜过大而紧张。\n{link}"
     },
     {
       "id": "discipline-dca",

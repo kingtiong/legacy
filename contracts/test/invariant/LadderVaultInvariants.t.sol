@@ -75,7 +75,7 @@ contract VaultHandler is Test {
     function deposit(uint256 actorSeed, uint256 amount, uint256 split) external tracked {
         address actor = actors[actorSeed % actors.length];
         amount = bound(amount, vault.MIN_DEPOSIT(), 50 ether);
-        split = bound(split, 7_000, 10_000);
+        split = 7_000; // the split is fixed
         vm.deal(actor, amount);
         vm.prank(actor);
         try vault.deposit{value: amount}(actor, split) returns (uint256 cohort, uint256 a, uint256 b) {

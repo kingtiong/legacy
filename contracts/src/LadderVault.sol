@@ -41,7 +41,8 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
     uint256 public immutable LOCK_EPOCHS;
 
     uint256 public constant BPS = 10_000;
-    uint256 public constant MIN_RETIREMENT_BPS = 7_000;
+    /// @notice Every deposit is split exactly 70% retirement / 30% emergency. Depositors do not choose.
+    uint256 public constant RETIREMENT_BPS = 7_000;
     uint256 public constant FEE_BPS = 3_000;
 
     uint8 public constant BUCKET_RETIREMENT = 0;
@@ -332,7 +333,8 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
 
     /// @notice Deposit BNB into the current cohort.
     /// @param receiver Who receives the shares.
-    /// @param retirementBps Share of the deposit locked in the retirement bucket, at least 7,000 (70%).
+    /// @param retirementBps Must be `RETIREMENT_BPS` (7,000): the split is fixed. Kept as an argument so callers state
+    ///        the split they agree to.
     function deposit(address receiver, uint256 retirementBps)
         external
         payable
@@ -341,7 +343,7 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
     {
         if (receiver == address(0)) revert ZeroAddress();
         if (msg.value < MIN_DEPOSIT || msg.value > MAX_DEPOSIT) revert InvalidAmount();
-        if (retirementBps < MIN_RETIREMENT_BPS || retirementBps > BPS) revert InvalidSplit();
+        if (retirementBps != RETIREMENT_BPS) revert InvalidSplit();
 
         // msg.value is already in the balance: keep it out of fee accrual and pricing.
         _accrueFee(msg.value);
