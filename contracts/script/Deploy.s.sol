@@ -23,7 +23,7 @@ import {TimelockController} from "@openzeppelin/contracts/governance/TimelockCon
 ///         Every predicted address and role is checked again at the end.
 ///
 ///         Nothing here touches a private key. Sign with your own keystore or hardware wallet, e.g.
-///           forge script script/Deploy.s.sol --rpc-url bsc --account <keystore> --broadcast --verify
+///           forge script script/Deploy.s.sol:Deploy --rpc-url bsc --account <keystore> --broadcast --verify
 ///
 ///         Environment: none on BSC mainnet, where the validators default to the launch set below and the payment
 ///         tokens to USDT and USDC; elsewhere set VALIDATORS and PAYMENT_TOKEN_0/1.

@@ -32,7 +32,7 @@ FOUNDRY_PROFILE=ci forge test              # heavier fuzzing, as CI runs it
 ## Simulating a deployment
 
 ```bash
-forge script script/Deploy.s.sol --rpc-url https://bsc-dataseed.bnbchain.org --sender <address>
+forge script script/Deploy.s.sol:Deploy --rpc-url https://bsc-dataseed.bnbchain.org --sender <address>
 ```
 
 Without `--broadcast` nothing is sent. The script never handles private keys.

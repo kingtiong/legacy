@@ -5,7 +5,7 @@ import { createLimiter } from '../../../lib/rateLimit';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Tester feedback from the ten-hour test edition (/test/guide). Stored in test_feedback, shown on /admin.
+// Tester feedback from the ten-hour test edition (/test/feedback). Stored in test_feedback, shown on /admin.
 const STEPS = new Set(['connect', 'deposit', 'ladder', 'claim', 'withdraw', 'other']);
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const TEN_MINUTES = 10 * 60 * 1000;

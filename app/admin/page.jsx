@@ -62,7 +62,7 @@ export default async function AdminPage() {
             <p className="eyebrow">Test edition</p>
             <h1>Tester reports</h1>
             <p>
-              From decadium.club/test/guide. {feedback.length} shown, newest first:{' '}
+              From decadium.club/test/feedback. {feedback.length} shown, newest first:{' '}
               {feedback.filter((f) => f.worked).length} worked, {feedback.filter((f) => !f.worked).length} problems.
             </p>
           </div>

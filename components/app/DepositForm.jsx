@@ -5,8 +5,9 @@ import { useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import WalletGate from './WalletGate';
 import TxButton from './TxButton';
+import DepositTerms from './DepositTerms';
 import { VAULT, useVaultStats, useChainTime, maturityOf, cohortStart, bnb, day, month, parseAmount } from '../../lib/vaultHooks';
-import { CHAIN_ID, DEPOSITS_PAUSED, TEST_MODE } from '../../lib/protocol';
+import { CHAIN_ID, DEPOSITS_PAUSED, TEST_MODE, EXPLORER, VAULT_ADDRESS } from '../../lib/protocol';
 
 const GAS_BUFFER = 10n ** 15n; // 0.001 BNB left for network fees
 
@@ -47,7 +48,8 @@ function Form() {
   const balance = useBalance({ address, chainId: CHAIN_ID, query: { refetchInterval: 30_000 } });
   const [text, setText] = useState('');
   const [retirement, setRetirement] = useState(70);
-  const [understood, setUnderstood] = useState(false);
+  const [stage, setStage] = useState('form'); // form -> review -> done
+  const [lang, setLang] = useState('en');
   const [done, setDone] = useState(null);
 
   if (!stats || now == null) return <div className="panel app-empty"><p className="muted">Reading the vault…</p></div>;
@@ -71,14 +73,40 @@ function Form() {
     return (
       <div className="panel app-empty">
         <h3>Your {month(cohortStart(stats, done.cohort))} rung is on the ladder</h3>
-        <p className="muted">{bnb(done.amount)} locked until {day(done.unlocks)}.</p>
+        <p className="muted">{bnb(done.amount)} is locked in the vault until <b>{day(done.unlocks)}</b>.</p>
+        {done.hash && (
+          <p className="small">
+            <a href={`${EXPLORER}/tx/${done.hash}`} target="_blank" rel="noreferrer">See the transaction on BscScan ↗</a>
+          </p>
+        )}
         <div className="cta-row">
           <Link className="btn" href="/app">See my ladder</Link>
-          <button type="button" className="btn ghost" onClick={() => { setDone(null); setText(''); setUnderstood(false); }}>
+          <button type="button" className="btn ghost" onClick={() => { setDone(null); setText(''); setStage('form'); }}>
             Deposit again
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (stage === 'review' && amount && !problem) {
+    return (
+      <DepositTerms amount={amount} toA={toA} toB={toB} retirement={retirement} unlocks={unlocks} stats={stats}
+        account={address} lang={lang} setLang={setLang} onBack={() => setStage('form')}
+        onAccept={(accepted) => (
+          <TxButton
+            className="btn lg"
+            label={lang === 'zh' ? `确认并锁定 ${bnb(amount)}` : `Confirm and lock ${bnb(amount)}`}
+            disabled={!accepted}
+            request={{ ...VAULT, functionName: 'deposit', args: [address, BigInt(retirement * 100)], value: amount }}
+            onDone={(receipt) => {
+              setDone({ amount, cohort, unlocks, hash: receipt?.transactionHash });
+              refetch();
+              balance.refetch();
+            }}
+          />
+        )}
+      />
     );
   }
 
@@ -117,24 +145,14 @@ function Form() {
           <div><dt>Earns</dt><dd>70% of BNB Chain staking rewards, compounding</dd></div>
           <div><dt>Votes</dt><dd>One DAO vote per share, for as long as you hold it</dd></div>
         </dl>
-        <label className="check">
-          <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
-          <span>
-            I understand this BNB is locked until <b>{day(unlocks)}</b>, that nobody (including the builders) can
-            unlock it early, and that the contracts are new and have not been audited.
-          </span>
-        </label>
-        <TxButton
-          className="btn lg"
-          label={amount ? `Lock ${bnb(amount)} for ${TEST_MODE ? '10 hours' : 'ten years'}` : 'Enter an amount'}
-          disabled={!amount || Boolean(problem) || !understood}
-          request={amount && !problem ? { ...VAULT, functionName: 'deposit', args: [address, BigInt(retirement * 100)], value: amount } : null}
-          onDone={() => {
-            setDone({ amount, cohort, unlocks });
-            refetch();
-            balance.refetch();
-          }}
-        />
+        <p className="notice">
+          Locked for {TEST_MODE ? '10 years (10 hours in this test edition)' : '10 years'}. Only the emergency part can
+          be sold early, to another person for USDT or USDC, usually at a discount. The full rules come next.
+        </p>
+        <button type="button" className="btn lg" disabled={!amount || Boolean(problem)} onClick={() => { setStage('review'); window.scrollTo(0, 0); }}>
+          {amount ? `Review terms for ${bnb(amount)}` : 'Enter an amount'}
+        </button>
+        <p className="hint">Vault: <a href={`${EXPLORER}/address/${VAULT_ADDRESS}`} target="_blank" rel="noreferrer">{VAULT_ADDRESS}</a></p>
       </section>
     </div>
   );

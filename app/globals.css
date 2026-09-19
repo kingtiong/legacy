@@ -540,3 +540,20 @@ textarea:focus{border-color:var(--teal);outline:none}
 .lang-toggle{max-width:220px;margin-bottom:1.2rem}
 .admin-feedback td{vertical-align:top;font-size:.85rem}
 .admin-scroll{overflow-x:auto;margin-top:1rem}
+
+/* ---------- deposit terms ---------- */
+.terms{display:grid;gap:1rem;max-width:860px}
+.terms-top{display:flex;justify-content:space-between;align-items:center;gap:.8rem;flex-wrap:wrap}
+.terms-top .lang-toggle{margin:0}
+.rules{margin:.2rem 0 0;padding-left:1.25rem;display:grid;gap:.7rem;color:var(--ink-soft)}
+.rules b{color:var(--ink)}
+.rule-warn{background:var(--brass-wash);border-left:3px solid var(--brass);padding:.55rem .75rem;border-radius:0 4px 4px 0}
+.panel-warn{border-color:#E8C9B9;background:#FDF6F2}
+.contracts{width:100%;border-collapse:collapse;margin:.4rem 0 .8rem}
+.contracts th{font:500 .82rem var(--sans);color:var(--ink-soft);text-align:left;vertical-align:top;padding:.55rem .8rem .55rem 0;white-space:nowrap}
+.contracts td{padding:.55rem 0;border-bottom:1px solid var(--rule-soft)}
+.contracts tr.main th,.contracts tr.main .mono-sm{color:var(--ink);font-weight:600}
+.contracts .links{display:flex;gap:1rem;margin-top:.2rem;font-size:.8rem}
+.mono-sm{font-family:var(--mono);font-size:.8rem;word-break:break-all}
+.summary .hint a{word-break:break-all}
+@media (max-width:600px){.contracts th{display:block;padding-bottom:0}.contracts td{display:block}.contracts tr{display:block;border-bottom:1px solid var(--rule-soft)}}

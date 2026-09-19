@@ -32,7 +32,7 @@ export default function SiteHeader() {
     {TEST_MODE && (
       <div className="test-banner" role="note">
         TEST EDITION · 10-hour lock · max 0.05 BNB · real BNB ·{' '}
-        <Link href="/guide">How to test / 如何测试</Link> ·{' '}
+        <Link href="/feedback">Report a problem</Link> ·{' '}
         <a href="https://decadium.club">not the real product</a>
       </div>
     )}

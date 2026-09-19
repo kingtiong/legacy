@@ -25,8 +25,7 @@ export default async function Home() {
         <p className="ask-follow">{follow(inTenYears)}</p>
         {TEST_MODE && (
           <div className="ask-cta">
-            <Link className="btn lg" href="/app/deposit">Try it: make a test deposit</Link>
-            <Link className="ask-link" href="/guide">How to test / 如何测试 <span aria-hidden="true">&rarr;</span></Link>
+            <Link className="btn lg" href="/app/deposit">Connect wallet &amp; deposit</Link>
           </div>
         )}
         <div className="ask-cta">
