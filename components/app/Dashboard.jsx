@@ -9,7 +9,7 @@ import {
   VAULT, useVaultStats, usePositions, useClaims, useChainTime,
   maturityOf, cohortStart, bnb, day, month, timeLeft, parseAmount, sharesFor,
 } from '../../lib/vaultHooks';
-import { RETIREMENT, EMERGENCY, FEE_SHARES_ID } from '../../lib/protocol';
+import { RETIREMENT, EMERGENCY, FEE_SHARES_ID, TEST_MODE } from '../../lib/protocol';
 
 export default function Dashboard() {
   return (
@@ -198,7 +198,8 @@ function Claims({ claims, now, onDone }) {
 
 /** Anyone may stake the vault's idle BNB once at least 1 BNB is waiting; it costs only gas. */
 function StakeIdle({ stats, onDone }) {
-  if (stats.delegatableBnb < 10n ** 18n) return null;
+  // Hidden in the test edition: staking would make every tester's claim wait 7 days for BNB Chain to unstake.
+  if (TEST_MODE || stats.delegatableBnb < 10n ** 18n) return null;
   return (
     <section className="panel stake-idle">
       <div>

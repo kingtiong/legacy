@@ -17,6 +17,10 @@ export default async function AdminPage() {
   if (!isAdmin(await headers())) notFound();
 
   const rows = await loadSignups(getPool());
+  const [feedback] = await getPool().query(
+    `SELECT id, created_at, step, worked, message, wallet, contact, lang, device
+       FROM test_feedback ORDER BY created_at DESC, id DESC LIMIT 300`
+  );
   const now = Date.now();
   const count = (fn) => rows.filter(fn).length;
   const sum = (chain) => rows.filter((r) => r.chain === chain).reduce((s, r) => s + r.monthly, 0);
@@ -52,6 +56,37 @@ export default async function AdminPage() {
         </div>
 
         <AdminTable rows={rows} />
+
+        <div className="admin-head" style={{ marginTop: '3rem' }}>
+          <div>
+            <p className="eyebrow">Test edition</p>
+            <h1>Tester reports</h1>
+            <p>
+              From decadium.club/test/guide. {feedback.length} shown, newest first:{' '}
+              {feedback.filter((f) => f.worked).length} worked, {feedback.filter((f) => !f.worked).length} problems.
+            </p>
+          </div>
+        </div>
+        <div className="admin-scroll">
+          <table className="admin admin-feedback">
+            <thead>
+              <tr><th>When (UTC)</th><th>Step</th><th>Result</th><th>What happened</th><th>Wallet</th><th>Contact</th><th>Device</th></tr>
+            </thead>
+            <tbody>
+              {feedback.map((f) => (
+                <tr key={f.id}>
+                  <td>{new Date(f.created_at).toISOString().slice(0, 16).replace('T', ' ')}</td>
+                  <td>{f.step}</td>
+                  <td>{f.worked ? 'Worked' : 'Problem'}</td>
+                  <td style={{ whiteSpace: 'pre-wrap', maxWidth: '28rem' }}>{f.message}</td>
+                  <td>{f.wallet ? `${f.wallet.slice(0, 6)}…${f.wallet.slice(-4)}` : ''}</td>
+                  <td>{f.contact}</td>
+                  <td style={{ maxWidth: '14rem' }}>{f.lang} · {f.device}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   );

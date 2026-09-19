@@ -26,7 +26,7 @@ export default async function Home() {
         {TEST_MODE && (
           <div className="ask-cta">
             <Link className="btn lg" href="/app/deposit">Try it: make a test deposit</Link>
-            <span className="muted small">Locked for 10 hours, then back to your wallet.</span>
+            <Link className="ask-link" href="/guide">How to test / 如何测试 <span aria-hidden="true">&rarr;</span></Link>
           </div>
         )}
         <div className="ask-cta">
