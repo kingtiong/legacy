@@ -6,7 +6,8 @@
     "dev": "next dev -p 3021",
     "build": "next build",
     "start": "next start -p 3021 -H 127.0.0.1",
-    "abi": "node scripts/export-abi.mjs"
+    "abi": "node scripts/export-abi.mjs",
+    "build:test": "NEXT_DIST_DIR=.next-test NEXT_PUBLIC_BASE_PATH=/test NEXT_PUBLIC_TEST_MODE=1 NEXT_PUBLIC_DEPOSITS_PAUSED=0 NEXT_PUBLIC_VAULT_ADDRESS=0x3949881291B46e83C643AedAAE45a312a58B542a NEXT_PUBLIC_MARKET_ADDRESS=0x44dC601a9Ea949FD947EC7627e0bB6bE95728F94 NEXT_PUBLIC_GOVERNOR_ADDRESS=0x37b56B7DbA5f9DDd32136880b3C7e5f31f5B080D NEXT_PUBLIC_TREASURY_ADDRESS=0x8E7B12487bA7cf13ec292Bd79730d3CF91243889 next build"
   },
   "dependencies": {
     "next": "^15.1.0",

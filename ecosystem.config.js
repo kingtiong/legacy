@@ -33,6 +33,17 @@ module.exports = {
       restart_delay: 60000,
     },
     {
+      // Ten-hour test edition (contracts from script/Deploy.s.sol:DeployTest), served at decadium.club/test.
+      // Build: npm run build:test. Its own output folder, so it never touches the live build.
+      name: 'ladder-test',
+      cwd: '/var/www/coreoslab/projects/project21 - Legacy Ladder',
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start -p 3027 -H 127.0.0.1',
+      interpreter: NODE,
+      env: { NODE_ENV: 'production', NEXT_DIST_DIR: '.next-test', NEXT_PUBLIC_BASE_PATH: '/test' },
+      max_restarts: 10,
+    },
+    {
       // Watches the contracts, keeper and website; alerts to Telegram (scripts/monitor.mjs). Telegram credentials live
       // in /etc/legacy-ladder/monitor.env, outside the repository.
       name: 'ladder-monitor',
