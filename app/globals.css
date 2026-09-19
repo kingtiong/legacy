@@ -528,3 +528,9 @@ textarea:focus{border-color:var(--teal);outline:none}
 /* ---------- ten-hour test edition ---------- */
 .test-banner{background:#B24A25;color:#fff;text-align:center;font:600 .82rem/1.4 var(--sans);padding:.5rem 1rem;letter-spacing:.02em}
 .test-banner a{color:#fff}
+
+.topbar .app-btn{margin-left:auto}
+.topbar .app-btn + .menu-btn{margin-left:0}
+@media (max-width:760px){.topbar .inner{gap:.6rem}.topbar .app-btn{padding-inline:.8rem}}
+.wallet-help{display:grid;gap:.5rem;justify-items:start}
+.wallet-help .row{display:flex;flex-wrap:wrap;gap:.5rem}

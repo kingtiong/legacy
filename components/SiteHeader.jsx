@@ -40,6 +40,9 @@ export default function SiteHeader() {
         <Link className="brand" href="/" aria-label={`${NAME} home`}>
           <img className="brand-logo" src={`${BASE_PATH}/brand/decadium-wordmark.png`} alt={NAME} width="1334" height="180" />
         </Link>
+        <Link className="btn sm app-btn" href={TEST_MODE ? '/app/deposit' : '/app'}>
+          {TEST_MODE ? 'Deposit' : 'Open app'}
+        </Link>
         <button ref={button} type="button" className="menu-btn" aria-expanded={open} aria-controls="site-menu"
           onClick={() => setOpen((v) => !v)}>
           <span className="menu-icon" aria-hidden="true"><i /><i /></span>
