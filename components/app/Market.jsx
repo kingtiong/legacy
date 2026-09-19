@@ -11,14 +11,13 @@ import {
   VAULT, MARKET, useVaultStats, usePositions, useChainTime,
   maturityOf, cohortStart, bnb, usd, day, month, timeLeft, parseAmount, sharesFor,
 } from '../../lib/vaultHooks';
-import { useMarketBook, useValues } from '../../lib/marketHooks';
+import { useMarketBook, useValues, span } from '../../lib/marketHooks';
 import { PAYMENT_TOKENS, EMERGENCY, CHAIN_ID, MARKET_ADDRESS, shareId, cohortOf } from '../../lib/protocol';
 import erc20Abi from '../../lib/abi/ERC20';
 
-const COOLING_OFF = 7 * 24 * 3600;
 const TABS = [
-  ['offers', 'Offers'],
-  ['buy', 'Make an offer'],
+  ['sell', 'Sell my 30%'],
+  ['buy', 'Buy'],
   ['mine', 'My trades'],
 ];
 const token = (i) => PAYMENT_TOKENS[Number(i)];
@@ -31,8 +30,9 @@ export default function Market() {
         <p className="eyebrow">Market</p>
         <h1 className="h1-page">Emergency shares, person to person</h1>
         <p className="lead">
-          Buyers escrow USDT or USDC in an offer. A holder who accepts gets a 7-day cooling-off to change their mind.
-          After that, each side collects. Retirement shares can never be sold.
+          The only early exit: sell your 30% emergency part to another person for USDT or USDC. List it at your own
+          price, or accept a buyer’s offer. Every sale has a cooling-off during which the seller can still cancel.
+          Retirement shares can never be sold.
         </p>
       </header>
       <WalletGate>
@@ -46,7 +46,7 @@ export default function Market() {
 
 function Desk() {
   const params = useSearchParams();
-  const [tab, setTab] = useState('offers');
+  const [tab, setTab] = useState(params.get('tab') === 'buy' ? 'buy' : 'sell');
   const { address } = useAccount();
   const { stats, refetch: refetchStats } = useVaultStats();
   const [now, refetchTime] = useChainTime();
@@ -68,6 +68,7 @@ function Desk() {
 
   if (!stats || now == null) return <div className="panel app-empty"><p className="muted">Reading the market…</p></div>;
   const focus = params.get('cohort');
+  const cool = book.coolingOff;
 
   return (
     <div className="appstack">
@@ -78,28 +79,43 @@ function Desk() {
           </button>
         ))}
       </div>
-      {tab === 'offers' && (
-        <Offers book={book} stats={stats} now={now} positions={positions} approved={approved} focus={focus} onDone={refresh} />
+      {tab === 'sell' && (
+        <>
+          <Sell stats={stats} now={now} cool={cool} positions={positions} approved={approved} focus={focus}
+            onDone={() => { refresh(); setTab('mine'); }} onApproved={refresh} />
+          <h2 className="h3 market-sub">Or accept a buyer’s offer</h2>
+          <Offers book={book} stats={stats} now={now} cool={cool} positions={positions} approved={approved} focus={focus}
+            onlyMine onDone={refresh} />
+        </>
       )}
-      {tab === 'buy' && <MakeOffer stats={stats} now={now} onDone={() => { refresh(); setTab('mine'); }} />}
-      {tab === 'mine' && <MyTrades book={book} now={now} onDone={refresh} />}
+      {tab === 'buy' && (
+        <>
+          <Listings book={book} stats={stats} now={now} cool={cool} onDone={() => { refresh(); setTab('mine'); }} />
+          <details className="panel make-offer">
+            <summary><b>Or make an offer at your own price</b></summary>
+            <MakeOffer stats={stats} now={now} cool={cool} onDone={() => { refresh(); setTab('mine'); }} />
+          </details>
+        </>
+      )}
+      {tab === 'mine' && <MyTrades book={book} now={now} cool={cool} onDone={refresh} />}
     </div>
   );
 }
 
 // ------------------------------------------------------------------ open offers
 
-function Offers({ book, stats, now, positions, approved, focus, onDone }) {
+function Offers({ book, stats, now, cool, positions, approved, focus, onlyMine, onDone }) {
   const { address } = useAccount();
   const open = useMemo(
     () =>
       book.offers
         .filter((o) => o.remainingShares > 0n && Number(o.expiresAt) > now)
-        .filter((o) => now + COOLING_OFF < maturityOf(stats, cohortOf(o.shareId)))
+        .filter((o) => now + cool < maturityOf(stats, cohortOf(o.shareId)))
+        .filter((o) => !onlyMine || positions.some((p) => p.id === o.shareId))
         .filter((o) => o.seller === zeroAddress || same(o.seller, address))
         .filter((o) => focus == null || cohortOf(o.shareId) === BigInt(focus))
         .reverse(),
-    [book.offers, now, stats, address, focus]
+    [book.offers, now, stats, address, focus, cool, onlyMine, positions]
   );
   const values = useValues(open.map((o) => o.remainingShares));
 
@@ -107,8 +123,7 @@ function Offers({ book, stats, now, positions, approved, focus, onDone }) {
   if (open.length === 0) {
     return (
       <div className="panel app-empty">
-        <h3>No open offers{focus != null ? ` for ${month(cohortStart(stats, focus))}` : ''}</h3>
-        <p className="muted">When a buyer escrows money for emergency shares you hold, it appears here.</p>
+        <p className="muted">No buyer offers for your shares right now. When a buyer escrows money for emergency shares you hold, it appears here.</p>
       </div>
     );
   }
@@ -116,14 +131,14 @@ function Offers({ book, stats, now, positions, approved, focus, onDone }) {
   return (
     <ul className="offers">
       {open.map((o, i) => (
-        <Offer key={o.id} offer={o} value={values[i]} stats={stats} now={now} approved={approved}
+        <Offer key={o.id} offer={o} value={values[i]} stats={stats} now={now} cool={cool} approved={approved}
           position={positions.find((p) => p.id === o.shareId)} onDone={onDone} />
       ))}
     </ul>
   );
 }
 
-function Offer({ offer, value, stats, now, position, approved, onDone }) {
+function Offer({ offer, value, stats, now, cool, position, approved, onDone }) {
   const { address } = useAccount();
   const t = token(offer.token);
   const cohort = cohortOf(offer.shareId);
@@ -171,7 +186,7 @@ function Offer({ offer, value, stats, now, position, approved, onDone }) {
             </div>
           </div>
           <p className="notice">
-            You receive <b>{usd(payment, t.decimals, t.symbol)}</b> after a 7-day cooling-off. Until then your shares
+            You receive <b>{usd(payment, t.decimals, t.symbol)}</b> after a {span(cool)} cooling-off. Until then your shares
             wait in the market and you can cancel. After it, the sale is final.
           </p>
           <div className="cta-row">
@@ -191,17 +206,210 @@ function Offer({ offer, value, stats, now, position, approved, onDone }) {
   );
 }
 
+// ------------------------------------------------------------------ sell my 30%: list at your own price
+
+function Sell({ stats, now, cool, positions, approved, focus, onDone, onApproved }) {
+  const { address } = useAccount();
+  const sellable = positions.filter((p) => p.bucket === EMERGENCY && now + cool < maturityOf(stats, p.cohort));
+  const [pick, setPick] = useState(null);
+  const position = sellable.find((p) => String(p.cohort) === String(pick ?? focus)) ?? sellable[0];
+  const [amountText, setAmountText] = useState('');
+  const [priceText, setPriceText] = useState('');
+  const [tokenIndex, setTokenIndex] = useState(0);
+  const [days, setDays] = useState(7);
+
+  if (sellable.length === 0) {
+    return (
+      <div className="panel app-empty">
+        <h3>Nothing to sell yet</h3>
+        <p className="muted">
+          You can sell the emergency part (30%) of any deposit, until {span(cool)} before it unlocks. Make a deposit
+          first, or check My trades for shares already listed.
+        </p>
+      </div>
+    );
+  }
+
+  const t = PAYMENT_TOKENS[tokenIndex];
+  const wanted = amountText === '' ? position.value : parseAmount(amountText);
+  const shares = sharesFor(wanted, position);
+  const price = parseAmount(priceText, t.decimals);
+  const perBnb = price && wanted ? (price * 10n ** 18n) / wanted : null;
+
+  let problem = '';
+  if (amountText && wanted == null) problem = 'Enter a BNB amount like 0.002';
+  else if (wanted != null && position.value != null && wanted > position.value) problem = `You hold ${bnb(position.value)} in this part.`;
+  else if (priceText && price == null) problem = `Enter a ${t.symbol} amount like 5`;
+  const ready = shares > 0n && price && !problem;
+
+  return (
+    <div className="deposit-grid">
+      <section className="panel">
+        <div className="field">
+          <label htmlFor="sell-pos">Emergency part to sell</label>
+          <select id="sell-pos" value={String(position.cohort)} onChange={(e) => { setPick(e.target.value); setAmountText(''); }}>
+            {sellable.map((p) => (
+              <option key={String(p.cohort)} value={String(p.cohort)}>
+                {month(cohortStart(stats, p.cohort))} · {bnb(p.value)} · unlocks {day(maturityOf(stats, p.cohort))}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="sell-amount">How much (BNB value)</label>
+          <div className="row">
+            <input id="sell-amount" type="text" inputMode="decimal" placeholder={`All (${bnb(position.value)})`}
+              value={amountText} onChange={(e) => setAmountText(e.target.value)} />
+            <button type="button" className="btn ghost sm" onClick={() => setAmountText('')}>All</button>
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="sell-price">Your price</label>
+          <div className="row">
+            <input id="sell-price" type="text" inputMode="decimal" placeholder="0.00" value={priceText} onChange={(e) => setPriceText(e.target.value)} />
+            <div className="toggle">
+              {PAYMENT_TOKENS.map((p) => (
+                <button key={p.symbol} type="button" aria-pressed={tokenIndex === p.index} onClick={() => setTokenIndex(p.index)}>{p.symbol}</button>
+              ))}
+            </div>
+          </div>
+          <p className="hint">{perBnb ? `= ${usd(perBnb, 18, t.symbol)} per BNB of value. ` : ''}Buyers usually expect a discount for waiting until the unlock.</p>
+        </div>
+        <div className="field">
+          <label htmlFor="sell-days">Listing open for <span className="rangeval">{days} day{days === 1 ? '' : 's'}</span></label>
+          <input id="sell-days" type="range" min="1" max="30" value={days} onChange={(e) => setDays(Number(e.target.value))} />
+        </div>
+        {problem && <p className="formmsg err">{problem}</p>}
+      </section>
+
+      <section className="panel summary">
+        <h2 className="h3">Your listing</h2>
+        <dl className="kv">
+          <div><dt>Selling</dt><dd className="tnum">{bnb(wanted)} of {month(cohortStart(stats, position.cohort))} emergency shares</dd></div>
+          <div><dt>Price</dt><dd className="tnum">{price ? usd(price, t.decimals, t.symbol) : '—'}</dd></div>
+          <div><dt>Paid to</dt><dd>{shortAddress(address)}</dd></div>
+        </dl>
+        <p className="notice">
+          Your shares move into the market’s escrow. A buyer can buy all or part at your price. After a purchase you
+          have <b>{span(cool)}</b> to cancel; after that the sale is final and you collect the {t.symbol}. Cancel the
+          listing any time to take unsold shares back. Your retirement part (70%) cannot be sold.
+        </p>
+        {!approved ? (
+          <TxButton key="approve" className="btn lg" label="1. Allow the market to hold emergency shares"
+            request={{ ...VAULT, functionName: 'setApprovalForAll', args: [MARKET_ADDRESS, true] }} onDone={onApproved} />
+        ) : (
+          <TxButton key="list" className="btn lg" label="List for sale" disabled={!ready}
+            request={ready ? { ...MARKET, functionName: 'listShares', args: [position.id, shares, price, tokenIndex, BigInt(days * 86400)] } : null}
+            onDone={onDone} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ buy: open listings
+
+function Listings({ book, stats, now, cool, onDone }) {
+  const { address } = useAccount();
+  const open = useMemo(
+    () =>
+      book.listings
+        .filter((l) => l.remainingShares > 0n && Number(l.expiresAt) > now)
+        .filter((l) => now + cool < maturityOf(stats, cohortOf(l.shareId)))
+        .reverse(),
+    [book.listings, now, stats, cool]
+  );
+  const values = useValues(open.map((l) => l.remainingShares));
+
+  if (book.isLoading) return <div className="panel app-empty"><p className="muted">Reading listings…</p></div>;
+  if (open.length === 0) {
+    return (
+      <div className="panel app-empty">
+        <h3>No emergency shares for sale right now</h3>
+        <p className="muted">When a holder lists shares, they appear here. You can also make an offer below.</p>
+      </div>
+    );
+  }
+  return (
+    <ul className="offers">
+      {open.map((l, i) => (
+        <ListingCard key={l.id} listing={l} value={values[i]} stats={stats} now={now} cool={cool}
+          mine={same(l.seller, address)} onDone={onDone} />
+      ))}
+    </ul>
+  );
+}
+
+function ListingCard({ listing, value, stats, now, cool, mine, onDone }) {
+  const { address } = useAccount();
+  const t = token(listing.token);
+  const cohort = cohortOf(listing.shareId);
+  const perBnb = value ? (listing.remainingPrice * 10n ** 18n) / value : null;
+  const reads = useReadContracts({
+    contracts: [
+      { address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'allowance', args: [address, MARKET_ADDRESS] },
+      { address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'balanceOf', args: [address] },
+    ],
+    query: { enabled: Boolean(address) && !mine, refetchInterval: 20_000 },
+  });
+  const [allowance, balance] = (reads.data || []).map((r) => (r?.status === 'success' ? r.result : null));
+  const price = listing.remainingPrice;
+  const short = balance != null && balance < price;
+
+  return (
+    <li className="panel offer">
+      <div className="offer-main">
+        <div>
+          <span className="k">{month(cohortStart(stats, cohort))} emergency shares</span>
+          <span className="v tnum">{bnb(value)}</span>
+          <span className="muted small">worth today · unlocks {day(maturityOf(stats, cohort))}</span>
+        </div>
+        <div>
+          <span className="k">Price</span>
+          <span className="v tnum">{usd(price, t.decimals, t.symbol)}</span>
+          <span className="muted small">{perBnb ? `${usd(perBnb, 18, t.symbol)} per BNB of value` : ''}</span>
+        </div>
+        <div className="offer-meta muted small">
+          <span>Seller {shortAddress(listing.seller)}</span>
+          <span>Listed for {timeLeft(Number(listing.expiresAt), now)} more</span>
+          {mine && <span>Your listing</span>}
+        </div>
+      </div>
+      {!mine && (
+        <>
+          <p className="notice">
+            You pay now; the shares are yours after a <b>{span(cool)}</b> cooling-off, during which the seller may
+            still cancel and refund you. The BNB inside can only be claimed when these shares unlock.
+          </p>
+          {short && <p className="formmsg err">You have {usd(balance, t.decimals, t.symbol)}.</p>}
+          <div className="cta-row">
+            {(allowance ?? 0n) < price ? (
+              <TxButton key="approve" className="btn sm" label={`1. Allow the market to take ${usd(price, t.decimals, t.symbol)}`} disabled={short}
+                request={{ address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'approve', args: [MARKET_ADDRESS, price] }}
+                onDone={() => reads.refetch()} />
+            ) : (
+              <TxButton key="buy" className="btn sm" label={`Buy for ${usd(price, t.decimals, t.symbol)}`} disabled={short}
+                request={{ ...MARKET, functionName: 'buyListing', args: [BigInt(listing.id), listing.remainingShares] }}
+                onDone={onDone} />
+            )}
+          </div>
+        </>
+      )}
+    </li>
+  );
+}
+
 // ------------------------------------------------------------------ make an offer
 
-function MakeOffer({ stats, now, onDone }) {
+function MakeOffer({ stats, now, cool, onDone }) {
   const { address } = useAccount();
   const cohorts = useMemo(() => {
     const list = [];
     for (let c = stats.currentCohort; c >= 0n; c--) {
-      if (now + COOLING_OFF < maturityOf(stats, c)) list.push(c);
+      if (now + cool < maturityOf(stats, c)) list.push(c);
     }
     return list;
-  }, [stats, now]);
+  }, [stats, now, cool]);
   const [cohort, setCohort] = useState(cohorts[0] ?? 0n);
   const [bnbText, setBnbText] = useState('');
   const [payText, setPayText] = useState('');
@@ -314,7 +522,7 @@ function MakeOffer({ stats, now, onDone }) {
 
 // ------------------------------------------------------------------ my trades
 
-function MyTrades({ book, now, onDone }) {
+function MyTrades({ book, now, cool, onDone }) {
   const { address } = useAccount();
   const myOffers = book.offers.filter((o) => same(o.buyer, address) && o.remainingPayment + o.refundable > 0n).reverse();
   const bought = book.sales.filter((s) => same(s.offer?.buyer, address)).reverse();
@@ -328,21 +536,50 @@ function MyTrades({ book, now, onDone }) {
     return saleClaims.data?.[i]?.status === 'success' ? saleClaims.data[i].result : null;
   };
   const values = useValues(sold.map((s) => s.shares));
+  const myListings = book.listings.filter((l) => same(l.seller, address) && (l.remainingShares > 0n || l.claimOpened)).reverse();
+  const listingValues = useValues(myListings.map((l) => l.remainingShares));
 
-  if (myOffers.length + bought.length + sold.length === 0) {
-    return <div className="panel app-empty"><h3>No trades yet</h3><p className="muted">Offers you make and sales you accept show up here.</p></div>;
+  if (myOffers.length + bought.length + sold.length + myListings.length === 0) {
+    return <div className="panel app-empty"><h3>No trades yet</h3><p className="muted">Your listings, offers, sales and purchases show up here.</p></div>;
   }
   const refresh = () => { onDone(); saleClaims.refetch(); };
 
   return (
     <>
+      {myListings.length > 0 && (
+        <section className="panel">
+          <h2 className="h3">Your listings</h2>
+          <ul className="trades">
+            {myListings.map((l, i) => {
+              const t = token(l.token);
+              const open = l.remainingShares > 0n && now < Number(l.expiresAt);
+              return (
+                <li key={l.id} className="trade">
+                  <span className="tnum">{bnb(listingValues[i])} for <b>{usd(l.remainingPrice, t.decimals, t.symbol)}</b></span>
+                  <span className="muted small">
+                    {l.claimOpened ? 'Unlocked before selling: BNB to withdraw' : open ? `Listed for ${timeLeft(Number(l.expiresAt), now)} more` : 'Listing ended: take your shares back'}
+                  </span>
+                  {l.remainingShares > 0n && (
+                    <TxButton className="btn ghost sm" label="Cancel listing, take shares back" doneLabel="Returned"
+                      request={{ ...MARKET, functionName: 'cancelListing', args: [BigInt(l.id), address] }} onDone={refresh} />
+                  )}
+                  {l.claimOpened && (
+                    <TxButton className="btn sm" label="Withdraw BNB" doneLabel="Paid"
+                      request={{ ...MARKET, functionName: 'withdrawListingClaim', args: [BigInt(l.id), address] }} onDone={refresh} />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
       {sold.length > 0 && (
         <section className="panel">
           <h2 className="h3">Shares you sold</h2>
           <ul className="trades">
             {sold.map((s, i) => {
               const t = token(s.offer.token);
-              const ends = Number(s.acceptedAt) + COOLING_OFF;
+              const ends = Number(s.acceptedAt) + cool;
               const cooling = now < ends;
               return (
                 <li key={s.id} className="trade">
@@ -370,7 +607,7 @@ function MyTrades({ book, now, onDone }) {
           <ul className="trades">
             {bought.map((s) => {
               const t = token(s.offer.token);
-              const ends = Number(s.acceptedAt) + COOLING_OFF;
+              const ends = Number(s.acceptedAt) + cool;
               const cooling = now < ends;
               const claim = s.claimOpened ? claimOf(s) : null;
               return (

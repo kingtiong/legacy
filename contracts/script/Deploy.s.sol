@@ -51,6 +51,7 @@ contract Deploy is Script {
         uint256 epoch;
         uint256 lockEpochs;
         uint256 seed;
+        uint256 coolingOff;
     }
 
     /// @notice The production launch parameters. `DeployTest` overrides these, and nothing else.
@@ -63,7 +64,8 @@ contract Deploy is Script {
             capRemovedAtEpoch: CAP_REMOVED_AT_EPOCH,
             epoch: EPOCH,
             lockEpochs: LOCK_EPOCHS,
-            seed: SEED
+            seed: SEED,
+            coolingOff: 7 days
         });
     }
 
@@ -95,7 +97,7 @@ contract Deploy is Script {
 
         timelock = _deployTimelock(predictedGovernor);
         vault = _deployVault(predictedMarket, address(timelock), validators);
-        market = new CohortMarket(vault, IERC20(token0), IERC20(token1));
+        market = new CohortMarket(vault, IERC20(token0), IERC20(token1), _params().coolingOff);
         governor = new LadderGovernor(vault, timelock);
         vm.stopBroadcast();
 
@@ -156,6 +158,7 @@ contract Deploy is Script {
         require(vault.balanceOf(vault.DEAD(), vault.FEE_SHARES_ID()) == p.seed * 1e3, "seed missing");
         require(vault.EPOCH() == p.epoch && vault.LOCK_EPOCHS() == p.lockEpochs, "lock length mismatch");
         require(vault.MAX_DEPOSIT() == p.maxDeposit && vault.CAP_INITIAL() == p.capInitial, "limits mismatch");
+        require(market.COOLING_OFF() == p.coolingOff, "cooling-off mismatch");
         require(address(market.VAULT()) == address(vault), "market vault mismatch");
         require(vault.feeRecipient() == address(timelock), "fee recipient is not the DAO treasury");
         require(vault.curator() == address(timelock), "curator is not the DAO treasury");
@@ -192,7 +195,8 @@ contract DeployTest is Deploy {
             capRemovedAtEpoch: type(uint256).max,
             epoch: 5 minutes,
             lockEpochs: 120,
-            seed: 0.0001 ether
+            seed: 0.0001 ether,
+            coolingOff: 10 minutes
         });
     }
 }

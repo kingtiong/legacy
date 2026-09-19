@@ -57,7 +57,7 @@ abstract contract DaoTestBase is VaultTestBase {
                 lockEpochs: 120
             })
         );
-        mkt = new CohortMarket(vault, usdt, usdc);
+        mkt = new CohortMarket(vault, usdt, usdc, 7 days);
         governor = new LadderGovernor(vault, timelock);
         assertEq(address(mkt), predictedMarket);
         assertEq(address(governor), predictedGovernor);

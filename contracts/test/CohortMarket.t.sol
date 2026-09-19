@@ -21,7 +21,7 @@ contract CohortMarketTest is MarketTestBase {
     function test_marketRefusesVaultThatExpectsAnotherAddress() public {
         // `vault` expects `mkt`; any new market lands elsewhere
         vm.expectRevert(CohortMarket.MarketMismatch.selector);
-        new CohortMarket(vault, usdt, usdc);
+        new CohortMarket(vault, usdt, usdc, 7 days);
     }
 
     // ================================================================ happy path

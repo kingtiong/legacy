@@ -22,6 +22,8 @@ contract MarketHandler is Test {
     uint256 public collectSharesFailed;
     uint256 public collectPaymentFailed;
     uint256 public refundFailed;
+    uint256 public cancelListingFailed;
+    uint256 public listingsBought;
     bytes4 public lastUnexpected;
 
     uint256 public accepted;
@@ -97,6 +99,64 @@ contract MarketHandler is Test {
         try mkt.acceptOffer(offerSeed % n, bound(shares, max / 4 + 1, max)) {
             ++accepted;
         } catch {}
+    }
+
+    // ---------------------------------------------------------------- listings
+
+    function listShares(
+        uint256 sellerSeed,
+        uint256 cohortSeed,
+        uint256 fraction,
+        uint256 price,
+        uint256 tokenSeed,
+        uint256 duration
+    ) external {
+        address seller = actors[sellerSeed % actors.length];
+        uint256 id = (cohorts[cohortSeed % cohorts.length] << 2) | 1;
+        uint256 held = vault.balanceOf(seller, id);
+        if (held == 0) return;
+        uint256 shares = bound(fraction, held / 10 + 1, held);
+        vm.prank(seller);
+        try mkt.listShares(
+            id, shares, bound(price, 1e6, 1e24), uint8(tokenSeed % 2), uint64(bound(duration, 1, 30 days))
+        ) {}
+            catch {}
+    }
+
+    function buyListing(uint256 buyerSeed, uint256 listingSeed, uint256 fraction) external {
+        uint256 n = mkt.listingCount();
+        if (n == 0) return;
+        uint256 listingId = listingSeed % n;
+        CohortMarket.Listing memory l = mkt.getListing(listingId);
+        if (l.remainingShares == 0) return;
+        address buyer = actors[buyerSeed % actors.length];
+        MockStablecoin t = tokens[l.token];
+        if (t.blacklisted(buyer)) return;
+        uint256 shares = bound(fraction, l.remainingShares / 4 + 1, l.remainingShares);
+        if (vault.previewRedeem(l.remainingShares - shares) < mkt.MIN_SALE_VALUE()) {
+            shares = l.remainingShares;
+        }
+        t.mint(buyer, l.remainingPrice);
+        vm.startPrank(buyer);
+        t.approve(address(mkt), l.remainingPrice);
+        try mkt.buyListing(listingId, shares) {
+            ++listingsBought;
+        } catch {}
+        vm.stopPrank();
+    }
+
+    function cancelListing(uint256 listingSeed, bool toRefuge) external {
+        uint256 n = mkt.listingCount();
+        if (n == 0) return;
+        uint256 listingId = listingSeed % n;
+        CohortMarket.Listing memory l = mkt.getListing(listingId);
+        if (l.remainingShares == 0) return;
+        vm.prank(l.seller);
+        try mkt.cancelListing(listingId, toRefuge ? refuge : l.seller) {}
+        catch (bytes memory reason) {
+            ++cancelListingFailed; // a seller must always be able to take unsold shares back
+            lastUnexpected = bytes4(reason);
+        }
     }
 
     function cancelSale(uint256 saleSeed) external {
@@ -220,6 +280,19 @@ contract MarketHandler is Test {
                 mkt.collectPayment(saleId, s.seller);
             }
         }
+        for (uint256 listingId; listingId < mkt.listingCount(); ++listingId) {
+            CohortMarket.Listing memory l = mkt.getListing(listingId);
+            if (l.remainingShares != 0) {
+                vm.prank(l.seller);
+                mkt.cancelListing(listingId, l.seller);
+                l = mkt.getListing(listingId);
+            }
+            if (l.claimOpened && !vault.getClaim(l.claimId).withdrawn) {
+                vm.warp(block.timestamp + 8 days);
+                vm.prank(l.seller);
+                mkt.withdrawListingClaim(listingId, l.seller);
+            }
+        }
         for (uint256 offerId; offerId < mkt.offerCount(); ++offerId) {
             CohortMarket.Offer memory o = mkt.getOffer(offerId);
             if (o.remainingPayment + o.refundable == 0) continue;
@@ -297,7 +370,14 @@ contract CohortMarketInvariants is MarketTestBase {
                     escrowed += s.shares;
                 }
             }
-            assertEq(vault.balanceOf(address(mkt), idB), escrowed);
+            for (uint256 i; i < mkt.listingCount(); ++i) {
+                CohortMarket.Listing memory l = mkt.getListing(i);
+                if (l.shareId == idB) escrowed += l.remainingShares;
+            }
+            // Exactly what open listings and sales hold, plus at most worthless shares abandoned after maturity.
+            uint256 held = vault.balanceOf(address(mkt), idB);
+            assertGe(held, escrowed, "escrow short");
+            assertEq(vault.previewRedeem(held - escrowed), 0, "unaccounted shares of any value");
             assertEq(vault.balanceOf(address(mkt), cohort << 2), 0, "never holds retirement shares");
         }
     }
@@ -305,6 +385,10 @@ contract CohortMarketInvariants is MarketTestBase {
     /// Votes follow shares through offers, escrow, cancellations, collections and matured claim routes.
     function invariant_votesMatchShares() public {
         _assertVotesMatchShares(vault, handler.holders(), handler.cohortList());
+    }
+
+    function invariant_sellerCanAlwaysTakeBackUnsoldListing() public view {
+        assertEq(handler.cancelListingFailed(), 0, vm.toString(abi.encodePacked(handler.lastUnexpected())));
     }
 
     function invariant_sellerCanAlwaysCancelInCoolingOff() public view {

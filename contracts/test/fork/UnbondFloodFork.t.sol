@@ -45,7 +45,7 @@ contract UnbondFloodForkTest is Test {
         vm.warp(vault.maturityOf(cohort));
 
         uint256 n = 200;
-        uint256 slice = (a * 0.0011 ether) / 20 ether;
+        uint256 slice = (a * 0.0011 ether) / vault.previewRedeem(a); // just over MIN_CLAIM each
         vm.startPrank(alice);
         for (uint256 i; i < n; ++i) {
             vault.requestClaim(cohort << 2, slice);

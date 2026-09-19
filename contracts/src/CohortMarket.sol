@@ -10,9 +10,10 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {LadderVault} from "./LadderVault.sol";
 
 /// @title Legacy Ladder emergency-share market
-/// @notice The only way to sell emergency-bucket shares before they mature. A buyer escrows stablecoin in an offer;
-///         a holder accepts, which escrows their shares and starts a seven-day cooling-off during which only the
-///         seller may cancel. After it, each side collects independently.
+/// @notice The only way to sell emergency-bucket shares before they mature. Either side can start a deal: a buyer
+///         escrows stablecoin in an offer that a holder accepts, or a holder escrows shares in a listing that a buyer
+///         pays for. Either way the deal becomes a sale with a cooling-off (seven days in production) during which
+///         only the seller may cancel. After it, each side collects independently.
 /// @dev    Security rules (see docs/THREAT_MODEL.md):
 ///         - No owner, no admin, no fees, no upgrade.
 ///         - Neither party can block the other: shares and payment are collected separately, to an address the
@@ -26,7 +27,9 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
     IERC20 public immutable PAYMENT_TOKEN_0;
     IERC20 public immutable PAYMENT_TOKEN_1;
 
-    uint256 public constant COOLING_OFF = 7 days;
+    /// @notice How long a seller may cancel after a sale. Seven days in production; a deployment setting only so
+    ///         the test edition can replay it in minutes.
+    uint256 public immutable COOLING_OFF;
     uint256 public constant MAX_OFFER_DURATION = 30 days;
     /// @notice A sale must be worth at least this much BNB. Dust sales could otherwise mature into claims too small
     ///         for the vault to pay, and would be free spam.
@@ -56,8 +59,20 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         uint256 claimId;
     }
 
+    struct Listing {
+        address seller;
+        uint64 expiresAt;
+        uint8 token;
+        bool claimOpened;
+        uint256 shareId;
+        uint256 remainingShares;
+        uint256 remainingPrice;
+        uint256 claimId;
+    }
+
     Offer[] internal _offers;
     Sale[] internal _sales;
+    Listing[] internal _listings;
 
     event OfferMade(
         uint256 indexed offerId,
@@ -83,6 +98,25 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
     event SaleClaimOpened(uint256 indexed saleId, uint256 claimId);
     event WorthlessSharesAbandoned(uint256 indexed saleId, uint256 shares);
     event PaymentCollected(uint256 indexed saleId, address to, uint256 amount);
+    event Listed(
+        uint256 indexed listingId,
+        address indexed seller,
+        uint256 shareId,
+        uint256 shares,
+        uint256 price,
+        uint8 token,
+        uint64 expiresAt
+    );
+    event ListingBought(
+        uint256 indexed listingId,
+        uint256 indexed saleId,
+        address indexed buyer,
+        uint256 shares,
+        uint256 payment,
+        uint64 coolingOffEnds
+    );
+    event ListingCancelled(uint256 indexed listingId, address to, uint256 shares);
+    event ListingClaimOpened(uint256 indexed listingId, uint256 claimId);
 
     error ZeroAddress();
     error InvalidAmount();
@@ -104,11 +138,17 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
     error UnexpectedTokens();
     error MarketMismatch();
     error SaleTooSmall();
+    error UnknownListing();
+    error NotListingSeller();
+    error ListingClosed();
+    error NoListingClaim();
 
-    constructor(LadderVault vault, IERC20 token0, IERC20 token1) {
+    constructor(LadderVault vault, IERC20 token0, IERC20 token1, uint256 coolingOff) {
         if (address(token0) == address(0) || address(token1) == address(0) || token0 == token1) {
             revert InvalidToken();
         }
+        if (coolingOff == 0) revert InvalidDuration();
+        COOLING_OFF = coolingOff;
         // The vault fixes its market address at deployment; refuse to exist anywhere else.
         if (vault.MARKET() != address(this)) revert MarketMismatch();
         VAULT = vault;
@@ -277,6 +317,135 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         _token(_offers[s.offerId].token).safeTransfer(to, s.payment);
     }
 
+    // ---------------------------------------------------------------- listings (seller-initiated)
+
+    /// @notice List emergency shares for sale at a fixed stablecoin price. Escrows the shares now, so a buyer's
+    ///         payment always meets real shares. Requires `setApprovalForAll(market, true)` on the vault. Buyers may
+    ///         buy all or part, pro rata; each purchase becomes a sale with the usual cooling-off.
+    function listShares(uint256 shareId, uint256 shares, uint256 price, uint8 token, uint64 duration)
+        external
+        nonReentrant
+        returns (uint256 listingId)
+    {
+        if (shareId & 3 != 1) revert NotEmergencyShare();
+        if (shares == 0 || price == 0) revert InvalidAmount();
+        if (duration == 0 || duration > MAX_OFFER_DURATION) revert InvalidDuration();
+        _token(token);
+        uint256 maturesAt = VAULT.maturityOf(shareId >> 2);
+        if (block.timestamp + COOLING_OFF >= maturesAt) revert CohortClosed(maturesAt);
+        if (VAULT.previewRedeem(shares) < MIN_SALE_VALUE) revert SaleTooSmall();
+
+        listingId = _listings.length;
+        uint64 expiresAt = uint64(block.timestamp) + duration;
+        _listings.push(
+            Listing({
+                seller: msg.sender,
+                expiresAt: expiresAt,
+                token: token,
+                claimOpened: false,
+                shareId: shareId,
+                remainingShares: shares,
+                remainingPrice: price,
+                claimId: 0
+            })
+        );
+        emit Listed(listingId, msg.sender, shareId, shares, price, token, expiresAt);
+        VAULT.safeTransferFrom(msg.sender, address(this), shareId, shares, "");
+    }
+
+    /// @notice Buy `shares` from a listing, paying its price pro rata (the final purchase pays exactly what is
+    ///         left). Starts the cooling-off: the seller may cancel, which returns the shares to them and makes the
+    ///         payment withdrawable by the buyer through the offer record this creates (`withdrawOffer`).
+    function buyListing(uint256 listingId, uint256 shares) external nonReentrant returns (uint256 saleId) {
+        Listing storage l = _listing(listingId);
+        if (block.timestamp >= l.expiresAt) revert OfferExpired();
+        if (shares == 0 || shares > l.remainingShares) revert InvalidAmount();
+        if (VAULT.previewRedeem(shares) < MIN_SALE_VALUE) revert SaleTooSmall();
+        uint256 maturesAt = VAULT.maturityOf(l.shareId >> 2);
+        if (block.timestamp + COOLING_OFF >= maturesAt) revert CohortClosed(maturesAt);
+
+        uint256 payment = shares == l.remainingShares
+            ? l.remainingPrice
+            : Math.mulDiv(l.remainingPrice, shares, l.remainingShares);
+        if (payment == 0) revert InvalidAmount();
+        l.remainingShares -= shares;
+        l.remainingPrice -= payment;
+        // Never leave a remainder too small to sell: buy it all, or leave something another buyer could take.
+        if (l.remainingShares != 0 && VAULT.previewRedeem(l.remainingShares) < MIN_SALE_VALUE) {
+            revert SaleTooSmall();
+        }
+
+        // The purchase is recorded as a fully used offer from the buyer, so collection, cancellation and refunds
+        // follow exactly the same path as an accepted offer.
+        uint256 offerId = _offers.length;
+        _offers.push(
+            Offer({
+                buyer: msg.sender,
+                expiresAt: uint64(block.timestamp),
+                seller: l.seller,
+                token: l.token,
+                shareId: l.shareId,
+                remainingShares: 0,
+                remainingPayment: 0,
+                refundable: 0
+            })
+        );
+        saleId = _sales.length;
+        _sales.push(
+            Sale({
+                offerId: offerId,
+                seller: l.seller,
+                acceptedAt: uint64(block.timestamp),
+                cancelled: false,
+                sharesCollected: false,
+                paymentCollected: false,
+                claimOpened: false,
+                shares: shares,
+                payment: payment,
+                claimId: 0
+            })
+        );
+        emit ListingBought(
+            listingId, saleId, msg.sender, shares, payment, uint64(block.timestamp + COOLING_OFF)
+        );
+
+        IERC20 t = _token(l.token);
+        uint256 before = t.balanceOf(address(this));
+        t.safeTransferFrom(msg.sender, address(this), payment);
+        if (t.balanceOf(address(this)) - before != payment) revert UnsupportedToken();
+    }
+
+    /// @notice Take back whatever is unsold. Before maturity the shares return to `to`; after it they can no longer
+    ///         move, so they are redeemed into a vault claim for the seller instead (see `withdrawListingClaim`).
+    function cancelListing(uint256 listingId, address to) external nonReentrant {
+        Listing storage l = _listing(listingId);
+        if (msg.sender != l.seller) revert NotListingSeller();
+        if (to == address(0)) revert ZeroAddress();
+        uint256 shares = l.remainingShares;
+        if (shares == 0) revert ListingClosed();
+        l.remainingShares = 0;
+        l.remainingPrice = 0;
+
+        if (block.timestamp < VAULT.maturityOf(l.shareId >> 2)) {
+            emit ListingCancelled(listingId, to, shares);
+            VAULT.safeTransferFrom(address(this), to, l.shareId, shares, "");
+        } else if (VAULT.previewRedeem(shares) == 0) {
+            emit WorthlessSharesAbandoned(type(uint256).max - listingId, shares);
+        } else {
+            l.claimOpened = true;
+            l.claimId = VAULT.requestClaim(l.shareId, shares);
+            emit ListingClaimOpened(listingId, l.claimId);
+        }
+    }
+
+    /// @notice Withdraw the BNB of unsold listed shares that matured in escrow.
+    function withdrawListingClaim(uint256 listingId, address to) external nonReentrant {
+        Listing storage l = _listing(listingId);
+        if (msg.sender != l.seller) revert NotListingSeller();
+        if (!l.claimOpened) revert NoListingClaim();
+        VAULT.withdrawTo(l.claimId, to);
+    }
+
     // ---------------------------------------------------------------- views
 
     function offerCount() external view returns (uint256) {
@@ -293,6 +462,14 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
 
     function getSale(uint256 saleId) external view returns (Sale memory) {
         return _sales[saleId];
+    }
+
+    function listingCount() external view returns (uint256) {
+        return _listings.length;
+    }
+
+    function getListing(uint256 listingId) external view returns (Listing memory) {
+        return _listings[listingId];
     }
 
     // ---------------------------------------------------------------- receiving shares
@@ -328,6 +505,11 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
     function _offer(uint256 offerId) internal view returns (Offer storage) {
         if (offerId >= _offers.length) revert UnknownOffer();
         return _offers[offerId];
+    }
+
+    function _listing(uint256 listingId) internal view returns (Listing storage) {
+        if (listingId >= _listings.length) revert UnknownListing();
+        return _listings[listingId];
     }
 
     function _sale(uint256 saleId) internal view returns (Sale storage) {

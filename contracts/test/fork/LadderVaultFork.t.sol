@@ -76,14 +76,21 @@ contract LadderVaultForkTest is Test {
         vault.withdraw(claimB);
         assertApproxEqAbs(alice.balance - before, 5 ether, 100, "alice gets her 5 BNB back");
 
-        uint256 bobShares = vault.balanceOf(bob, cohort << 2);
-        vm.prank(bob);
-        uint256 claimBob = vault.requestClaim(cohort << 2, bobShares);
-        vm.warp(block.timestamp + HUB.unbondPeriod());
         before = bob.balance;
-        vault.withdraw(claimBob);
+        _claimAll(bob, cohort);
         assertApproxEqAbs(bob.balance - before, 3 ether, 100, "bob gets his 3 BNB back");
         assertEq(vault.outstandingClaims(), 0);
+    }
+
+    /// @dev Redeem both parts of `who`'s rung and withdraw them once StakeHub has unbonded.
+    function _claimAll(address who, uint256 cohort) internal {
+        vm.startPrank(who);
+        uint256 a = vault.requestClaim(cohort << 2, vault.balanceOf(who, cohort << 2));
+        uint256 b = vault.requestClaim((cohort << 2) | 1, vault.balanceOf(who, (cohort << 2) | 1));
+        vm.stopPrank();
+        vm.warp(block.timestamp + HUB.unbondPeriod());
+        vault.withdraw(a);
+        vault.withdraw(b);
     }
 
     function test_vaultReceiveFitsRealStipend() public view {

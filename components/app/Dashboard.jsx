@@ -142,7 +142,7 @@ function Bucket({ title, position, id, claimable, sellable, cohort, onDone }) {
         <button type="button" className="btn sm" onClick={() => setOpen(true)}>Claim</button>
       )}
       {sellable && (
-        <Link className="btn ghost sm" href={`/app/market?cohort=${cohort}`}>Sell on the market</Link>
+        <Link className="btn ghost sm" href={`/app/market?cohort=${cohort}`}>Sell my 30%</Link>
       )}
       {claimable && open && (
         <div className="claimbox">

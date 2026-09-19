@@ -45,7 +45,7 @@ abstract contract MarketTestBase is VaultTestBase {
                 lockEpochs: 120
             })
         );
-        m = new CohortMarket(v, t0, t1);
+        m = new CohortMarket(v, t0, t1, 7 days);
         assertEq(address(m), predicted, "market deployed at the address the vault expects");
     }
 

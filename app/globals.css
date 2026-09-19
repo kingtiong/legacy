@@ -567,3 +567,7 @@ textarea:focus{border-color:var(--teal);outline:none}
 .vault-links{display:flex;flex-wrap:wrap;gap:.5rem}
 .contracts tr.main .mono-sm{font-size:1rem}
 .contracts tr.main th{font-size:.95rem}
+
+.market-sub{margin:1.4rem 0 .2rem}
+.make-offer summary{cursor:pointer;padding:.2rem 0}
+.make-offer[open] summary{margin-bottom:1rem}
