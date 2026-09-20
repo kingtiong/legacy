@@ -5,10 +5,12 @@ import { useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
 import WalletGate from './WalletGate';
 import TxButton from './TxButton';
+import TxSequenceButton from './TxSequenceButton';
 import {
   VAULT, useVaultStats, usePositions, useClaims, useChainTime,
   maturityOf, cohortStart, bnb, day, month, timeLeft, parseAmount, sharesFor,
 } from '../../lib/vaultHooks';
+import { formatEther } from 'viem';
 import { RETIREMENT, EMERGENCY, FEE_SHARES_ID, TEST_MODE } from '../../lib/protocol';
 
 export default function Dashboard() {
@@ -115,6 +117,24 @@ function Rung({ rung, stats, now, onDone }) {
         <span>{matured ? `Matured ${day(matures)}` : `Unlocks ${day(matures)} · in ${timeLeft(matures, now)}`}</span>
       </div>
       <div className="rung-buckets">
+        {matured && rung[RETIREMENT] && rung[EMERGENCY] && (
+          <div className="bucket bucket-all">
+            <span className="k">Whole rung</span>
+            <span className="v tnum">{bnb((rung[RETIREMENT].value ?? 0n) + (rung[EMERGENCY].value ?? 0n))}</span>
+            <TxSequenceButton
+              className="btn sm"
+              label="Claim whole rung"
+              doneLabel="Claimed"
+              requests={[rung[RETIREMENT], rung[EMERGENCY]].map((p) => ({
+                ...VAULT,
+                functionName: 'requestClaim',
+                args: [p.id, p.shares],
+              }))}
+              onDone={onDone}
+            />
+            <span className="muted small">Or claim part of one bucket below.</span>
+          </div>
+        )}
         {rung[RETIREMENT] && (
           <Bucket title="Retirement" position={rung[RETIREMENT]} id={rung[RETIREMENT].id} claimable={matured} onDone={onDone} />
         )}
@@ -150,7 +170,10 @@ function Bucket({ title, position, id, claimable, sellable, cohort, onDone }) {
           <div className="row">
             <input id={`claim-${id}`} type="text" inputMode="decimal" placeholder={`All (${bnb(position.value)})`}
               value={text} onChange={(e) => setText(e.target.value)} />
-            <button type="button" className="btn ghost sm" onClick={() => setText('')}>All</button>
+            <button type="button" className="btn ghost sm"
+              onClick={() => setText(position.value != null ? formatEther(position.value) : '')}>
+              All
+            </button>
           </div>
           {tooMuch && <span className="tx-error">That is more than this bucket holds.</span>}
           <TxButton
@@ -179,6 +202,19 @@ function Claims({ claims, now, onDone }) {
         Claimed BNB is paid straight away when the vault has it idle. Otherwise it is unstaked from BNB Chain first,
         which takes about 7 days.
       </p>
+      {claims.filter((c) => now >= Number(c.readyAt)).length > 1 && (
+        <div className="cta-row" style={{ marginBottom: '.8rem' }}>
+          <TxSequenceButton
+            className="btn sm"
+            label="Withdraw all ready"
+            doneLabel="Paid"
+            requests={claims
+              .filter((c) => now >= Number(c.readyAt))
+              .map((c) => ({ ...VAULT, functionName: 'withdraw', args: [BigInt(c.id)] }))}
+            onDone={onDone}
+          />
+        </div>
+      )}
       <ul className="claims-list">
         {claims.map((c) => {
           const ready = now >= Number(c.readyAt);

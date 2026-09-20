@@ -571,3 +571,4 @@ textarea:focus{border-color:var(--teal);outline:none}
 .market-sub{margin:1.4rem 0 .2rem}
 .make-offer summary{cursor:pointer;padding:.2rem 0}
 .make-offer[open] summary{margin-bottom:1rem}
+.bucket-all{border-color:var(--ink);background:var(--bg-alt)}

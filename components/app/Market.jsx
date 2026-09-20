@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo, useState } from 'react';
-import { isAddress, zeroAddress } from 'viem';
+import { formatEther, isAddress, zeroAddress } from 'viem';
 import { useAccount, useReadContracts } from 'wagmi';
 import WalletGate from './WalletGate';
 import TxButton from './TxButton';
@@ -182,7 +182,10 @@ function Offer({ offer, value, stats, now, cool, position, approved, onDone }) {
             <div className="row">
               <input id={`sell-${offer.id}`} type="text" inputMode="decimal" placeholder={`Max (${bnb(cap?.value)})`}
                 value={text} onChange={(e) => setText(e.target.value)} />
-              <button type="button" className="btn ghost sm" onClick={() => setText('')}>Max</button>
+              <button type="button" className="btn ghost sm"
+                onClick={() => setText(cap?.value != null ? formatEther(cap.value) : '')}>
+                Max
+              </button>
             </div>
           </div>
           <p className="notice">
@@ -260,7 +263,10 @@ function Sell({ stats, now, cool, positions, approved, focus, onDone, onApproved
           <div className="row">
             <input id="sell-amount" type="text" inputMode="decimal" placeholder={`All (${bnb(position.value)})`}
               value={amountText} onChange={(e) => setAmountText(e.target.value)} />
-            <button type="button" className="btn ghost sm" onClick={() => setAmountText('')}>All</button>
+            <button type="button" className="btn ghost sm"
+              onClick={() => setAmountText(position.value != null ? formatEther(position.value) : '')}>
+              All
+            </button>
           </div>
         </div>
         <div className="field">
