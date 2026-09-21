@@ -59,9 +59,27 @@ function Ladder() {
   const total = positions.reduce((sum, p) => sum + (p.value ?? 0n), 0n);
   const next = rungs.find((r) => maturityOf(stats, r.cohort) > now);
   const open = claims.filter((c) => !c.withdrawn);
+  const ready = open.filter((c) => now >= Number(c.readyAt));
+  const readyTotal = ready.reduce((sum, c) => sum + c.amount, 0n);
 
   return (
     <div className="appstack">
+      {ready.length > 0 && (
+        <div className="panel panel-ready" role="status">
+          <div>
+            <b>{bnb(readyTotal)} is ready to go to your wallet</b>
+            <p className="muted small">
+              Your claim went through. This last step pays the BNB out{ready.length > 1 ? `, one transaction per claim` : ''}.
+            </p>
+          </div>
+          <TxSequenceButton
+            label="Withdraw to my wallet"
+            requests={ready.map((c) => ({ ...VAULT, functionName: 'withdraw', args: [BigInt(c.id)] }))}
+            onDone={refresh}
+          />
+        </div>
+      )}
+
       <section className="tiles" aria-label="Summary">
         <div className="tile"><span className="k">Your ladder is worth</span><span className="v tnum">{bnb(total)}</span></div>
         <div className="tile"><span className="k">Months saved</span><span className="v tnum">{rungs.length}</span></div>
@@ -110,6 +128,7 @@ function Ladder() {
 function Rung({ rung, stats, now, onDone }) {
   const matures = maturityOf(stats, rung.cohort);
   const matured = now >= matures;
+  const held = [rung[RETIREMENT], rung[EMERGENCY]].filter(Boolean);
   return (
     <li className={`rung${matured ? ' is-matured' : ''}`}>
       <div className="rung-when">
@@ -117,22 +136,17 @@ function Rung({ rung, stats, now, onDone }) {
         <span>{matured ? `Matured ${day(matures)}` : `Unlocks ${day(matures)} · in ${timeLeft(matures, now)}`}</span>
       </div>
       <div className="rung-buckets">
-        {matured && rung[RETIREMENT] && rung[EMERGENCY] && (
+        {matured && held.length > 0 && (
           <div className="bucket bucket-all">
-            <span className="k">Whole rung</span>
-            <span className="v tnum">{bnb((rung[RETIREMENT].value ?? 0n) + (rung[EMERGENCY].value ?? 0n))}</span>
+            <span className="k">This rung</span>
+            <span className="v tnum">{bnb(held.reduce((sum, p) => sum + (p.value ?? 0n), 0n))}</span>
             <TxSequenceButton
               className="btn sm"
-              label="Claim whole rung"
-              doneLabel="Claimed"
-              requests={[rung[RETIREMENT], rung[EMERGENCY]].map((p) => ({
-                ...VAULT,
-                functionName: 'requestClaim',
-                args: [p.id, p.shares],
-              }))}
+              label="Claim this rung"
+              requests={held.map((p) => ({ ...VAULT, functionName: 'requestClaim', args: [p.id, p.shares] }))}
               onDone={onDone}
             />
-            <span className="muted small">Or claim part of one bucket below.</span>
+            {held.length > 1 && <span className="muted small">Or claim part of one bucket below.</span>}
           </div>
         )}
         {rung[RETIREMENT] && (
@@ -202,19 +216,6 @@ function Claims({ claims, now, onDone }) {
         Claimed BNB is paid straight away when the vault has it idle. Otherwise it is unstaked from BNB Chain first,
         which takes about 7 days.
       </p>
-      {claims.filter((c) => now >= Number(c.readyAt)).length > 1 && (
-        <div className="cta-row" style={{ marginBottom: '.8rem' }}>
-          <TxSequenceButton
-            className="btn sm"
-            label="Withdraw all ready"
-            doneLabel="Paid"
-            requests={claims
-              .filter((c) => now >= Number(c.readyAt))
-              .map((c) => ({ ...VAULT, functionName: 'withdraw', args: [BigInt(c.id)] }))}
-            onDone={onDone}
-          />
-        </div>
-      )}
       <ul className="claims-list">
         {claims.map((c) => {
           const ready = now >= Number(c.readyAt);

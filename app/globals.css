@@ -572,3 +572,6 @@ textarea:focus{border-color:var(--teal);outline:none}
 .make-offer summary{cursor:pointer;padding:.2rem 0}
 .make-offer[open] summary{margin-bottom:1rem}
 .bucket-all{border-color:var(--ink);background:var(--bg-alt)}
+.panel-ready{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;border-color:var(--accent)}
+.panel-ready p{margin:.2rem 0 0}
+.tx-steps{display:inline-flex;flex-direction:column;gap:.35rem;align-items:flex-start}
