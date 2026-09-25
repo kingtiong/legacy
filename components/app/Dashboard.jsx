@@ -11,7 +11,7 @@ import {
   maturityOf, cohortStart, bnb, day, month, timeLeft, parseAmount, sharesFor,
 } from '../../lib/vaultHooks';
 import { formatEther } from 'viem';
-import { RETIREMENT, EMERGENCY, FEE_SHARES_ID, TEST_MODE } from '../../lib/protocol';
+import { RETIREMENT, EMERGENCY, FEE_SHARES_ID, TEST_MODE, BATCH_CLAIMS } from '../../lib/protocol';
 
 export default function Dashboard() {
   return (
@@ -69,14 +69,24 @@ function Ladder() {
           <div>
             <b>{bnb(readyTotal)} is ready to go to your wallet</b>
             <p className="muted small">
-              Your claim went through. This last step pays the BNB out{ready.length > 1 ? `, one transaction per claim` : ''}.
+              Your claim went through. This last step pays the BNB out
+              {ready.length > 1 && !BATCH_CLAIMS ? ', one transaction per claim' : ''}.
             </p>
           </div>
-          <TxSequenceButton
-            label="Withdraw to my wallet"
-            requests={ready.map((c) => ({ ...VAULT, functionName: 'withdraw', args: [BigInt(c.id)] }))}
-            onDone={refresh}
-          />
+          {BATCH_CLAIMS && ready.length > 1 ? (
+            <TxButton
+              label="Withdraw to my wallet"
+              doneLabel="Paid"
+              request={{ ...VAULT, functionName: 'withdrawMany', args: [ready.map((c) => BigInt(c.id))] }}
+              onDone={refresh}
+            />
+          ) : (
+            <TxSequenceButton
+              label="Withdraw to my wallet"
+              requests={ready.map((c) => ({ ...VAULT, functionName: 'withdraw', args: [BigInt(c.id)] }))}
+              onDone={refresh}
+            />
+          )}
         </div>
       )}
 
@@ -140,12 +150,26 @@ function Rung({ rung, stats, now, onDone }) {
           <div className="bucket bucket-all">
             <span className="k">This rung</span>
             <span className="v tnum">{bnb(held.reduce((sum, p) => sum + (p.value ?? 0n), 0n))}</span>
-            <TxSequenceButton
-              className="btn sm"
-              label="Claim this rung"
-              requests={held.map((p) => ({ ...VAULT, functionName: 'requestClaim', args: [p.id, p.shares] }))}
-              onDone={onDone}
-            />
+            {BATCH_CLAIMS && held.length > 1 ? (
+              <TxButton
+                className="btn sm"
+                label="Claim this rung"
+                doneLabel="Claimed"
+                request={{
+                  ...VAULT,
+                  functionName: 'requestClaimMany',
+                  args: [held.map((p) => p.id), held.map((p) => p.shares)],
+                }}
+                onDone={onDone}
+              />
+            ) : (
+              <TxSequenceButton
+                className="btn sm"
+                label="Claim this rung"
+                requests={held.map((p) => ({ ...VAULT, functionName: 'requestClaim', args: [p.id, p.shares] }))}
+                onDone={onDone}
+              />
+            )}
             {held.length > 1 && <span className="muted small">Or claim part of one bucket below.</span>}
           </div>
         )}

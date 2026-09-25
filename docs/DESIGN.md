@@ -76,6 +76,12 @@ most-staked validators; it is ready after the unbond period. BNB collected from 
 from the reserve. Only the owner can redirect a claim with `withdrawTo`, which also rescues an owner that cannot
 receive BNB.
 
+**Both at once.** `requestClaimMany(ids, shares)` and `withdrawMany(claimIds)` loop over the same code, entry by
+entry, so every rule above still holds and one bad entry reverts the batch. They exist because a wallet asks to
+confirm each transaction separately: without them a matured rung costs four confirmations (claim both buckets, then
+withdraw both claims) and a saver who lets several rungs mature pays two more for each. They cost the vault's
+bytecode, which is why the optimizer runs at 1,000 rather than 10,000 (see `foundry.toml`).
+
 **Accounting identity.** `totalAssets = balance + staked + unbonding − outstandingClaims`, and at all times
 `reservedLiquidity + unbonding ≥ outstandingClaims` and `balance ≥ reservedLiquidity`.
 

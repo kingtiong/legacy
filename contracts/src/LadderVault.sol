@@ -160,6 +160,8 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
     error NoDelegationTarget();
     error ClaimNotReady(uint64 readyAt);
     error AlreadyWithdrawn();
+    /// @notice A batch call with no entries, or with mismatched id and share lists.
+    error InvalidBatch();
     error NotClaimOwner();
     error InsufficientLiquidity();
     error InsufficientStake();
@@ -398,6 +400,25 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
     /// @notice Redeem matured shares. Burns them and fixes the BNB owed. The BNB is withdrawable immediately if
     ///         the vault holds enough idle BNB, otherwise after StakeHub's unbonding period.
     function requestClaim(uint256 id, uint256 shares) external nonReentrant returns (uint256 claimId) {
+        claimId = _requestClaim(id, shares);
+    }
+
+    /// @notice Redeem several matured positions in one transaction: both buckets of a rung, or several rungs. A
+    ///         wallet asks for a separate confirmation per transaction, so claiming one by one is claiming slowly.
+    function requestClaimMany(uint256[] calldata ids, uint256[] calldata shares)
+        external
+        nonReentrant
+        returns (uint256[] memory claimIds)
+    {
+        uint256 n = ids.length;
+        if (n == 0 || n != shares.length) revert InvalidBatch();
+        claimIds = new uint256[](n);
+        for (uint256 i; i < n; ++i) {
+            claimIds[i] = _requestClaim(ids[i], shares[i]);
+        }
+    }
+
+    function _requestClaim(uint256 id, uint256 shares) internal returns (uint256 claimId) {
         if (shares == 0) revert InvalidAmount();
         if (id != FEE_SHARES_ID) {
             if (id & 3 > BUCKET_EMERGENCY) revert InvalidShareId();
@@ -443,6 +464,15 @@ contract LadderVault is ERC1155Supply, ReentrancyGuard {
     /// @notice Pay a ready claim to its owner.
     function withdraw(uint256 claimId) external {
         _withdraw(claimId, _claims[claimId].owner);
+    }
+
+    /// @notice Pay several ready claims to their owners in one transaction.
+    function withdrawMany(uint256[] calldata claimIds) external {
+        uint256 n = claimIds.length;
+        if (n == 0) revert InvalidBatch();
+        for (uint256 i; i < n; ++i) {
+            _withdraw(claimIds[i], _claims[claimIds[i]].owner);
+        }
     }
 
     /// @notice Pay a ready claim to another address. Only the claim's owner may choose where it goes, which also
