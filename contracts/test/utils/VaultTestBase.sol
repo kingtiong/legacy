@@ -13,6 +13,7 @@ abstract contract VaultTestBase is Test {
 
     address internal market = makeAddr("market");
     address internal feeRecipient = makeAddr("feeRecipient");
+    address internal treasury = makeAddr("treasury");
     address internal curator = makeAddr("curator");
     address internal alice = makeAddr("alice");
     address internal bob = makeAddr("bob");

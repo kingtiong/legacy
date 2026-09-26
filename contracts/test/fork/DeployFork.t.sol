@@ -60,7 +60,10 @@ contract DeployForkTest is Test {
             vault,
             IERC20(0x55d398326f99059fF775485246999027B3197955),
             IERC20(0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d),
-            7 days
+            7 days,
+            address(timelock),
+            200,
+            300
         );
         governor = new LadderGovernor(vault, timelock);
         assertEq(address(governor), predictedGovernor);

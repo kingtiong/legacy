@@ -34,6 +34,11 @@ contract Deploy is Script {
     uint256 internal constant CAP_INITIAL = 100 ether;
     uint256 internal constant CAP_GROWTH_PER_EPOCH = 50 ether;
     uint256 internal constant CAP_REMOVED_AT_EPOCH = 36;
+    /// @notice Paid by the buyer on top of the price, so a seller receives exactly what was agreed. To the DAO.
+    uint256 internal constant TRADE_FEE_BPS = 200;
+    /// @notice Paid by a seller who cancels during the cooling-off: half to the buyer whose money was locked, half
+    ///         to the DAO. A seller who will not pay it simply does not cancel, and the sale completes.
+    uint256 internal constant CANCEL_FEE_BPS = 300;
     /// @notice Wait between a proposal passing and anyone being able to execute it.
     uint256 internal constant TIMELOCK_DELAY = 2 days;
     /// @notice Permanent seed deposited at deployment (shares held by nobody), so the pool is never empty.
@@ -97,7 +102,9 @@ contract Deploy is Script {
 
         timelock = _deployTimelock(predictedGovernor);
         vault = _deployVault(predictedMarket, address(timelock), validators);
-        market = new CohortMarket(vault, IERC20(token0), IERC20(token1), _params().coolingOff);
+        market = new CohortMarket(
+            vault, IERC20(token0), IERC20(token1), _params().coolingOff, address(timelock), TRADE_FEE_BPS, CANCEL_FEE_BPS
+        );
         governor = new LadderGovernor(vault, timelock);
         vm.stopBroadcast();
 
@@ -159,6 +166,11 @@ contract Deploy is Script {
         require(vault.EPOCH() == p.epoch && vault.LOCK_EPOCHS() == p.lockEpochs, "lock length mismatch");
         require(vault.MAX_DEPOSIT() == p.maxDeposit && vault.CAP_INITIAL() == p.capInitial, "limits mismatch");
         require(market.COOLING_OFF() == p.coolingOff, "cooling-off mismatch");
+        require(market.FEE_RECIPIENT() == address(timelock), "market fees do not go to the DAO treasury");
+        require(
+            market.TRADE_FEE_BPS() == TRADE_FEE_BPS && market.CANCEL_FEE_BPS() == CANCEL_FEE_BPS,
+            "market fee mismatch"
+        );
         require(address(market.VAULT()) == address(vault), "market vault mismatch");
         require(vault.feeRecipient() == address(timelock), "fee recipient is not the DAO treasury");
         require(vault.curator() == address(timelock), "curator is not the DAO treasury");

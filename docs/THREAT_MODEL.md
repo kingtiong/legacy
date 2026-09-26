@@ -23,7 +23,10 @@ and must not reach principal.
 | Withdrawals do not depend on us | No keeper, bot, admin action or website is required. Every step is callable by anyone, including the owner from a block explorer. |
 | Payouts from StakeHub cannot get stuck in the vault | StakeHub forwards only 5,000 gas when paying out an unbond. The vault's `receive()` does nothing, and a fork test proves claims succeed at that stipend. |
 | An early bug hits a small amount | Deposit caps are written into the bytecode and rise on a fixed schedule. No admin can raise them. |
-| A seller can change their mind | The market's seven-day cooling-off: only the seller can cancel, and nothing can stop them doing so within it. |
+| A seller can change their mind | The market's seven-day cooling-off: only the seller can cancel, and nothing but the cancellation fee can stop them doing so within it. |
+| A buyer is not made to wait for free | Cancelling costs the seller 3% of the price, half of it paid to that buyer. Locking a buyer's money and walking away therefore costs real money every time, and a seller who will not pay simply lets the sale complete. |
+| Fees reach only the DAO | Both rates are immutable and capped in the constructor (3% trade, 5% cancellation), and the recipient is the timelock, fixed at deployment. There is no admin to change either, and `settleFee` can pay nobody else. |
+| A bought rung stays bought | `collectShares` records shares against whoever receives them, and the market refuses to take them back through a listing or an offer. Moving them to another wallet does not help: the vault lets emergency shares move only through the market. |
 | Neither side of a sale can trap the other | Shares and payment are collected separately, each to an address the collector chooses. |
 | A sale can always be finished | If shares mature before collection they become a vault claim for the buyer; worthless shares close the sale. |
 | The DAO can only spend the treasury | The treasury holds nothing but fee shares and what they redeem into. No vault role reaches deposits; a unanimous vote to take a depositor's shares is tested and fails. |

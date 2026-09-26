@@ -7,7 +7,7 @@ Status: **deployed to BNB Smart Chain mainnet on 2026-09-14 ([addresses](../depl
 | Contract | Role | Mutable? |
 |---|---|---|
 | `LadderVault` | Deposits, monthly cohort shares (ERC-1155), 70/30 split, maturity, claims, fee, staking via StakeHub | Immutable, no owner |
-| `CohortMarket` | Escrowed sale of emergency shares for USDT or USDC, with a seven-day cooling-off | Immutable, no owner, no fees |
+| `CohortMarket` | Escrowed sale of emergency shares for USDT or USDC, with a seven-day cooling-off | Immutable, no owner; two fixed fees to the DAO |
 | `TimelockController` (OpenZeppelin) | The DAO treasury: the vault's fee recipient, executes passed proposals after 2 days | No admin; changes only through its own proposals |
 | `LadderGovernor` | Depositor voting on the treasury (OpenZeppelin Governor) | Settings changeable only by a passed vote |
 
@@ -113,15 +113,29 @@ bytecode, which is why the optimizer runs at 1,000 rather than 10,000 (see `foun
 2. **Accept.** A holder sells all or part (priced pro rata; the final fill takes exactly what is left). The sale must
    be worth at least 0.000001 BNB. Shares move into escrow and a seven-day cooling-off starts. Offers and acceptances
    close seven days before the cohort matures.
-3. **Cancel.** Only the seller, only within the cooling-off. Shares return; the payment becomes refundable.
+3. **Cancel.** Only the seller, only within the cooling-off, and only by paying `CANCEL_FEE_BPS` (3% of the price):
+   half compensates the buyer for the days their money sat locked, half goes to the DAO. Shares return and the buyer
+   becomes refundable for everything they paid plus that compensation. A seller who cannot or will not pay simply
+   does not cancel, and the sale completes — so the right to change one's mind is real but never free, and cannot be
+   used to lock a buyer's capital repeatedly.
 4. **Collect.** After the cooling-off, the buyer collects shares and the seller collects payment, **each
-   independently and to an address of their choosing**, so neither can block the other.
+   independently and to an address of their choosing**, so neither can block the other. The seller receives the
+   agreed price untouched: `TRADE_FEE_BPS` (2%) was added on top of it when the buyer paid, and goes to the DAO when
+   the sale completes. `settleFee` lets anyone hand the DAO its share of a sale whose seller never collects; a
+   cancelled sale charges the buyer nothing.
 5. **Maturity while waiting.** If the buyer collects after maturity, when shares can no longer move, the market
    redeems them into a vault claim that only the buyer can direct. Shares that have become worthless close the sale
    instead of leaving a collection that can never succeed.
 
+6. **One hop only.** Shares bought here can never be sold again: `collectShares` records them against whoever
+   receives them, and `listShares` and `acceptOffer` refuse to take them. Moving them to another wallet first
+   changes nothing, because the vault lets emergency shares move only through this market. A holder who both saved
+   and bought may still sell what they saved. The cost of this rule is the buyer's: they hold an illiquid position
+   until maturity, and will price it accordingly.
+
 The market only accepts shares it pulled itself, never holds retirement shares (the vault refuses to move them), and
-rejects fee-on-transfer tokens.
+rejects fee-on-transfer tokens. Both fee rates are fixed at deployment, capped in the constructor (3% trade, 5%
+cancellation), and payable only to the DAO treasury: there is no admin who can change or redirect them.
 
 **Deployment.** The vault's market address is immutable, so the deploy script predicts the market's address from the
 deployer's nonce, deploys the vault with it, deploys the market, and checks the address matched. The market's

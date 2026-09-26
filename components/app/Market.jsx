@@ -11,7 +11,7 @@ import {
   VAULT, MARKET, useVaultStats, usePositions, useChainTime,
   maturityOf, cohortStart, bnb, usd, day, month, timeLeft, parseAmount, sharesFor,
 } from '../../lib/vaultHooks';
-import { useMarketBook, useValues, span } from '../../lib/marketHooks';
+import { useMarketBook, useValues, span, feeOn } from '../../lib/marketHooks';
 import { PAYMENT_TOKENS, EMERGENCY, CHAIN_ID, MARKET_ADDRESS, shareId, cohortOf } from '../../lib/protocol';
 import erc20Abi from '../../lib/abi/ERC20';
 
@@ -81,30 +81,34 @@ function Desk() {
       </div>
       {tab === 'sell' && (
         <>
-          <Sell stats={stats} now={now} cool={cool} positions={positions} approved={approved} focus={focus}
+          <Sell stats={stats} now={now} cool={cool} cancelFeeBps={book.cancelFeeBps} positions={positions} approved={approved} focus={focus}
             onDone={() => { refresh(); setTab('mine'); }} onApproved={refresh} />
           <h2 className="h3 market-sub">Or accept a buyer’s offer</h2>
-          <Offers book={book} stats={stats} now={now} cool={cool} positions={positions} approved={approved} focus={focus}
+          <Offers book={book} stats={stats} now={now} cool={cool} cancelFeeBps={book.cancelFeeBps} positions={positions} approved={approved} focus={focus}
             onlyMine onDone={refresh} />
         </>
       )}
       {tab === 'buy' && (
         <>
-          <Listings book={book} stats={stats} now={now} cool={cool} onDone={() => { refresh(); setTab('mine'); }} />
+          <Listings book={book} stats={stats} now={now} cool={cool} tradeFeeBps={book.tradeFeeBps}
+            onDone={() => { refresh(); setTab('mine'); }} />
           <details className="panel make-offer">
             <summary><b>Or make an offer at your own price</b></summary>
-            <MakeOffer stats={stats} now={now} cool={cool} onDone={() => { refresh(); setTab('mine'); }} />
+            <MakeOffer stats={stats} now={now} cool={cool} tradeFeeBps={book.tradeFeeBps}
+              onDone={() => { refresh(); setTab('mine'); }} />
           </details>
         </>
       )}
-      {tab === 'mine' && <MyTrades book={book} now={now} cool={cool} onDone={refresh} />}
+      {tab === 'mine' && (
+        <MyTrades book={book} now={now} cool={cool} cancelFeeBps={book.cancelFeeBps} onDone={refresh} />
+      )}
     </div>
   );
 }
 
 // ------------------------------------------------------------------ open offers
 
-function Offers({ book, stats, now, cool, positions, approved, focus, onlyMine, onDone }) {
+function Offers({ book, stats, now, cool, cancelFeeBps, positions, approved, focus, onlyMine, onDone }) {
   const { address } = useAccount();
   const open = useMemo(
     () =>
@@ -131,14 +135,14 @@ function Offers({ book, stats, now, cool, positions, approved, focus, onlyMine, 
   return (
     <ul className="offers">
       {open.map((o, i) => (
-        <Offer key={o.id} offer={o} value={values[i]} stats={stats} now={now} cool={cool} approved={approved}
+        <Offer key={o.id} offer={o} value={values[i]} stats={stats} now={now} cool={cool} cancelFeeBps={cancelFeeBps} approved={approved}
           position={positions.find((p) => p.id === o.shareId)} onDone={onDone} />
       ))}
     </ul>
   );
 }
 
-function Offer({ offer, value, stats, now, cool, position, approved, onDone }) {
+function Offer({ offer, value, stats, now, cool, cancelFeeBps, position, approved, onDone }) {
   const { address } = useAccount();
   const t = token(offer.token);
   const cohort = cohortOf(offer.shareId);
@@ -189,8 +193,11 @@ function Offer({ offer, value, stats, now, cool, position, approved, onDone }) {
             </div>
           </div>
           <p className="notice">
-            You receive <b>{usd(payment, t.decimals, t.symbol)}</b> after a {span(cool)} cooling-off. Until then your shares
-            wait in the market and you can cancel. After it, the sale is final.
+            You receive <b>{usd(payment, t.decimals, t.symbol)}</b> in full after a {span(cool)} cooling-off — the
+            buyer pays the market’s fee on top, not you. Until then your shares wait in the market and you may
+            cancel, which costs you{' '}
+            <b>{usd(feeOn(payment, cancelFeeBps), t.decimals, t.symbol)}</b>: half to the buyer for the wait, half to
+            the DAO. After the cooling-off the sale is final.
           </p>
           <div className="cta-row">
             {!approved ? (
@@ -211,7 +218,9 @@ function Offer({ offer, value, stats, now, cool, position, approved, onDone }) {
 
 // ------------------------------------------------------------------ sell my 30%: list at your own price
 
-function Sell({ stats, now, cool, positions, approved, focus, onDone, onApproved }) {
+const SLICES = [5, 10, 20, 30];
+
+function Sell({ stats, now, cool, cancelFeeBps, positions, approved, focus, onDone, onApproved }) {
   const { address } = useAccount();
   const sellable = positions.filter((p) => p.bucket === EMERGENCY && now + cool < maturityOf(stats, p.cohort));
   const [pick, setPick] = useState(null);
@@ -259,15 +268,31 @@ function Sell({ stats, now, cool, positions, approved, focus, onDone, onApproved
           </select>
         </div>
         <div className="field">
-          <label htmlFor="sell-amount">How much (BNB value)</label>
+          <label id="sell-slice-label">How much of that month’s savings to sell</label>
+          {/* The emergency bucket is the 30% of a deposit that may ever be sold, so a slice of the deposit is that
+              same fraction of thirty. */}
+          <div className="toggle slices" role="group" aria-labelledby="sell-slice-label">
+            {SLICES.map((pct) => {
+              const slice = position.value != null ? (position.value * BigInt(pct)) / 30n : null;
+              const on = slice != null && wanted === slice;
+              return (
+                <button key={pct} type="button" aria-pressed={on}
+                  onClick={() => setAmountText(slice != null ? formatEther(slice) : '')}>
+                  {pct}%{pct === 30 ? ' (all)' : ''}
+                </button>
+              );
+            })}
+          </div>
+          <label className="sr" htmlFor="sell-amount">Or an exact BNB value</label>
           <div className="row">
             <input id="sell-amount" type="text" inputMode="decimal" placeholder={`All (${bnb(position.value)})`}
               value={amountText} onChange={(e) => setAmountText(e.target.value)} />
-            <button type="button" className="btn ghost sm"
-              onClick={() => setAmountText(position.value != null ? formatEther(position.value) : '')}>
-              All
-            </button>
+            <button type="button" className="btn ghost sm" onClick={() => setAmountText('')}>Reset</button>
           </div>
+          <p className="hint">
+            {wanted != null ? `${bnb(wanted)} of ${bnb(position.value)} — ` : ''}
+            the retirement 70% of that month stays locked either way.
+          </p>
         </div>
         <div className="field">
           <label htmlFor="sell-price">Your price</label>
@@ -296,9 +321,11 @@ function Sell({ stats, now, cool, positions, approved, focus, onDone, onApproved
           <div><dt>Paid to</dt><dd>{shortAddress(address)}</dd></div>
         </dl>
         <p className="notice">
-          Your shares move into the market’s escrow. A buyer can buy all or part at your price. After a purchase you
-          have <b>{span(cool)}</b> to cancel; after that the sale is final and you collect the {t.symbol}. Cancel the
-          listing any time to take unsold shares back. Your retirement part (70%) cannot be sold.
+          Your shares move into the market’s escrow. A buyer can buy all or part at your price, and pays the market’s
+          fee on top, so you receive your full price. After a purchase you have <b>{span(cool)}</b> to cancel, which
+          costs you <b>{price ? usd(feeOn(price, cancelFeeBps), t.decimals, t.symbol) : `${(cancelFeeBps / 100).toFixed(1)}%`}</b>{' '}
+          — half to the buyer for the wait, half to the DAO — and nothing if you let it complete. Cancel the listing
+          itself any time to take unsold shares back. Your retirement part (70%) can never be sold.
         </p>
         {!approved ? (
           <TxButton key="approve" className="btn lg" label="1. Allow the market to hold emergency shares"
@@ -315,7 +342,7 @@ function Sell({ stats, now, cool, positions, approved, focus, onDone, onApproved
 
 // ------------------------------------------------------------------ buy: open listings
 
-function Listings({ book, stats, now, cool, onDone }) {
+function Listings({ book, stats, now, cool, tradeFeeBps, onDone }) {
   const { address } = useAccount();
   const open = useMemo(
     () =>
@@ -340,13 +367,13 @@ function Listings({ book, stats, now, cool, onDone }) {
     <ul className="offers">
       {open.map((l, i) => (
         <ListingCard key={l.id} listing={l} value={values[i]} stats={stats} now={now} cool={cool}
-          mine={same(l.seller, address)} onDone={onDone} />
+          tradeFeeBps={tradeFeeBps} mine={same(l.seller, address)} onDone={onDone} />
       ))}
     </ul>
   );
 }
 
-function ListingCard({ listing, value, stats, now, cool, mine, onDone }) {
+function ListingCard({ listing, value, stats, now, cool, tradeFeeBps, mine, onDone }) {
   const { address } = useAccount();
   const t = token(listing.token);
   const cohort = cohortOf(listing.shareId);
@@ -360,7 +387,10 @@ function ListingCard({ listing, value, stats, now, cool, mine, onDone }) {
   });
   const [allowance, balance] = (reads.data || []).map((r) => (r?.status === 'success' ? r.result : null));
   const price = listing.remainingPrice;
-  const short = balance != null && balance < price;
+  // The buyer pays the seller's price plus the market's fee; the seller receives the price untouched.
+  const fee = feeOn(price, tradeFeeBps);
+  const total = price + fee;
+  const short = balance != null && balance < total;
 
   return (
     <li className="panel offer">
@@ -384,14 +414,17 @@ function ListingCard({ listing, value, stats, now, cool, mine, onDone }) {
       {!mine && (
         <>
           <p className="notice">
-            You pay now; the shares are yours after a <b>{span(cool)}</b> cooling-off, during which the seller may
-            still cancel and refund you. The BNB inside can only be claimed when these shares unlock.
+            You pay <b>{usd(total, t.decimals, t.symbol)}</b>: {usd(price, t.decimals, t.symbol)} to the seller and{' '}
+            {usd(fee, t.decimals, t.symbol)} market fee to the DAO. The shares are yours after a <b>{span(cool)}</b>{' '}
+            cooling-off, during which the seller may still cancel and refund you everything plus compensation.{' '}
+            <b>Once they are yours you cannot sell them on</b> — the BNB inside can only be claimed when these shares
+            unlock, on {day(maturityOf(stats, cohort))}.
           </p>
           {short && <p className="formmsg err">You have {usd(balance, t.decimals, t.symbol)}.</p>}
           <div className="cta-row">
-            {(allowance ?? 0n) < price ? (
-              <TxButton key="approve" className="btn sm" label={`1. Allow the market to take ${usd(price, t.decimals, t.symbol)}`} disabled={short}
-                request={{ address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'approve', args: [MARKET_ADDRESS, price] }}
+            {(allowance ?? 0n) < total ? (
+              <TxButton key="approve" className="btn sm" label={`1. Allow the market to take ${usd(total, t.decimals, t.symbol)}`} disabled={short}
+                request={{ address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'approve', args: [MARKET_ADDRESS, total] }}
                 onDone={() => reads.refetch()} />
             ) : (
               <TxButton key="buy" className="btn sm" label={`Buy for ${usd(price, t.decimals, t.symbol)}`} disabled={short}
@@ -407,7 +440,7 @@ function ListingCard({ listing, value, stats, now, cool, mine, onDone }) {
 
 // ------------------------------------------------------------------ make an offer
 
-function MakeOffer({ stats, now, cool, onDone }) {
+function MakeOffer({ stats, now, cool, tradeFeeBps, onDone }) {
   const { address } = useAccount();
   const cohorts = useMemo(() => {
     const list = [];
@@ -447,10 +480,15 @@ function MakeOffer({ stats, now, cool, onDone }) {
   else if (bnbText && wantBnb == null) problem = 'Enter a BNB amount like 0.5';
   else if (payText && payment == null) problem = `Enter a ${t.symbol} amount like 250`;
   else if (sellerText && !isAddress(seller)) problem = 'That seller address is not valid.';
-  else if (payment != null && tokenBalance != null && payment > tokenBalance) problem = `You have ${usd(tokenBalance, t.decimals, t.symbol)}.`;
+  // The seller is offered `payment` and receives all of it; the market's fee is the buyer's to add.
+  const fee = feeOn(payment, tradeFeeBps);
+  const total = payment == null ? null : payment + fee;
+  if (!problem && total != null && tokenBalance != null && total > tokenBalance) {
+    problem = `You have ${usd(tokenBalance, t.decimals, t.symbol)}, and this offer costs ${usd(total, t.decimals, t.symbol)} with the fee.`;
+  }
 
   const ready = wantBnb && shares && payment && !problem;
-  const needsApproval = ready && (allowance ?? 0n) < payment;
+  const needsApproval = ready && (allowance ?? 0n) < total;
 
   return (
     <div className="deposit-grid">
@@ -486,7 +524,9 @@ function MakeOffer({ stats, now, cool, onDone }) {
               ))}
             </div>
           </div>
-          <p className="hint">In your wallet: {usd(tokenBalance, t.decimals, t.symbol)}</p>
+          <p className="hint">
+            Goes to the seller in full. In your wallet: {usd(tokenBalance, t.decimals, t.symbol)}
+          </p>
         </div>
         <div className="field">
           <label htmlFor="days">Offer open for <span className="rangeval">{days} days</span></label>
@@ -504,17 +544,21 @@ function MakeOffer({ stats, now, cool, onDone }) {
         <h2 className="h3">Your offer</h2>
         <dl className="kv">
           <div><dt>Buy</dt><dd className="tnum">{wantBnb ? bnb(wantBnb) : '—'} of {month(cohortStart(stats, cohort))} emergency shares</dd></div>
-          <div><dt>Pay</dt><dd className="tnum">{payment ? usd(payment, t.decimals, t.symbol) : '—'}</dd></div>
+          <div><dt>To the seller</dt><dd className="tnum">{payment ? usd(payment, t.decimals, t.symbol) : '—'}</dd></div>
+          <div><dt>Market fee</dt><dd className="tnum">{payment ? usd(fee, t.decimals, t.symbol) : '—'}</dd></div>
+          <div><dt>You pay</dt><dd className="tnum">{total ? usd(total, t.decimals, t.symbol) : '—'}</dd></div>
           <div><dt>Unlocks</dt><dd>{day(maturityOf(stats, cohort))}, then you claim the BNB</dd></div>
           <div><dt>Seller</dt><dd>{seller === zeroAddress ? 'Any holder' : shortAddress(seller)}</dd></div>
         </dl>
         <p className="notice">
-          Your {t.symbol} sits in the market contract until a holder accepts. Withdraw what is unspent any time. A seller
-          can cancel within 7 days of accepting; you then get that payment back too.
+          Your {t.symbol} sits in the market contract until a holder accepts. Withdraw what is unspent any time. A
+          seller can cancel within {span(cool)} of accepting; you then get everything back, fee included, plus
+          compensation from them for the wait. <b>Shares you buy cannot be sold on</b>: you hold them until the month
+          unlocks, then claim the BNB.
         </p>
         {needsApproval ? (
-          <TxButton key="approve" className="btn lg" label={`1. Allow the market to take ${usd(payment, t.decimals, t.symbol)}`}
-            request={{ address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'approve', args: [MARKET_ADDRESS, payment] }}
+          <TxButton key="approve" className="btn lg" label={`1. Allow the market to take ${usd(total, t.decimals, t.symbol)}`}
+            request={{ address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'approve', args: [MARKET_ADDRESS, total] }}
             onDone={() => reads.refetch()} />
         ) : (
           <TxButton key="offer" className="btn lg" label="Escrow and publish offer" disabled={!ready}
@@ -528,7 +572,43 @@ function MakeOffer({ stats, now, cool, onDone }) {
 
 // ------------------------------------------------------------------ my trades
 
-function MyTrades({ book, now, cool, onDone }) {
+/** Cancelling is the seller's right, but not a free one: they pay for the days the buyer's money sat locked. */
+function CancelSale({ sale, token: t, cancelFeeBps, onDone }) {
+  const { address } = useAccount();
+  const penalty = feeOn(sale.payment, cancelFeeBps);
+  const reads = useReadContracts({
+    contracts: [
+      { address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'allowance', args: [address, MARKET_ADDRESS] },
+      { address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'balanceOf', args: [address] },
+    ],
+    query: { enabled: Boolean(address) && penalty > 0n, refetchInterval: 20_000 },
+  });
+  const [allowance, balance] = (reads.data || []).map((r) => (r?.status === 'success' ? r.result : null));
+  const short = penalty > 0n && balance != null && balance < penalty;
+
+  return (
+    <span className="cancelbox">
+      {penalty > 0n && (
+        <span className="muted small">
+          Cancelling costs {usd(penalty, t.decimals, t.symbol)}: half to the buyer for the wait, half to the DAO.
+          {short ? ` You hold ${usd(balance, t.decimals, t.symbol)}.` : ''}
+        </span>
+      )}
+      {penalty > 0n && (allowance ?? 0n) < penalty ? (
+        <TxButton key="approve" className="btn ghost sm" disabled={short}
+          label={`1. Allow the ${usd(penalty, t.decimals, t.symbol)} fee`}
+          request={{ address: t.address, abi: erc20Abi, chainId: CHAIN_ID, functionName: 'approve', args: [MARKET_ADDRESS, penalty] }}
+          onDone={() => reads.refetch()} />
+      ) : (
+        <TxButton key="cancel" className="btn ghost sm" label="Cancel sale, get shares back" doneLabel="Cancelled"
+          disabled={short}
+          request={{ ...MARKET, functionName: 'cancelSale', args: [BigInt(sale.id)] }} onDone={onDone} />
+      )}
+    </span>
+  );
+}
+
+function MyTrades({ book, now, cool, cancelFeeBps, onDone }) {
   const { address } = useAccount();
   const myOffers = book.offers.filter((o) => same(o.buyer, address) && o.remainingPayment + o.refundable > 0n).reverse();
   const bought = book.sales.filter((s) => same(s.offer?.buyer, address)).reverse();
@@ -594,8 +674,7 @@ function MyTrades({ book, now, cool, onDone }) {
                     {s.cancelled ? 'Cancelled, shares returned' : s.paymentCollected ? 'Paid' : cooling ? `Cooling-off ends in ${timeLeft(ends, now)}` : 'Payment ready'}
                   </span>
                   {!s.cancelled && cooling && (
-                    <TxButton className="btn ghost sm" label="Cancel sale, get shares back" doneLabel="Cancelled"
-                      request={{ ...MARKET, functionName: 'cancelSale', args: [BigInt(s.id)] }} onDone={refresh} />
+                    <CancelSale sale={s} token={t} cancelFeeBps={cancelFeeBps} onDone={refresh} />
                   )}
                   {!s.cancelled && !cooling && !s.paymentCollected && (
                     <TxButton className="btn sm" label={`Collect ${t.symbol}`} doneLabel="Collected"

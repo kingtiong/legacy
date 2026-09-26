@@ -18,9 +18,7 @@ contract CohortMarketListingsTest is MarketTestBase {
     }
 
     function _pay(address buyer, uint256 amount) internal {
-        usdt.mint(buyer, amount);
-        vm.prank(buyer);
-        usdt.approve(address(mkt), amount);
+        _fund(usdt, buyer, amount);
     }
 
     function test_listing_fullPurchase() public {
@@ -31,7 +29,7 @@ contract CohortMarketListingsTest is MarketTestBase {
         _pay(bob, 1_000e18);
         vm.prank(bob);
         uint256 saleId = mkt.buyListing(id, b);
-        assertEq(usdt.balanceOf(address(mkt)), 1_000e18, "payment escrowed");
+        assertEq(usdt.balanceOf(address(mkt)), 1_020e18, "the price and the buyer's 2% fee, both escrowed");
 
         uint256 endsAt = block.timestamp + 7 days;
         vm.prank(bob);
@@ -44,7 +42,8 @@ contract CohortMarketListingsTest is MarketTestBase {
         vm.prank(alice);
         mkt.collectPayment(saleId, alice);
         assertEq(vault.balanceOf(bob, _idB(cohort)), b);
-        assertEq(usdt.balanceOf(alice), 1_000e18);
+        assertEq(usdt.balanceOf(alice), 1_000e18, "the seller receives exactly the agreed price");
+        assertEq(usdt.balanceOf(treasury), 20e18, "the fee goes to the DAO treasury");
         assertEq(usdt.balanceOf(address(mkt)), 0);
         assertEq(vault.balanceOf(address(mkt), _idB(cohort)), 0);
         assertEq(mkt.getListing(id).remainingShares, 0);
@@ -72,6 +71,9 @@ contract CohortMarketListingsTest is MarketTestBase {
         vm.expectRevert(CohortMarket.NotSeller.selector);
         mkt.cancelSale(saleId);
 
+        usdt.mint(alice, 30e18);
+        vm.prank(alice);
+        usdt.approve(address(mkt), 30e18);
         vm.prank(alice);
         mkt.cancelSale(saleId);
         assertEq(vault.balanceOf(alice, _idB(cohort)), b, "shares back to the seller");
@@ -79,7 +81,8 @@ contract CohortMarketListingsTest is MarketTestBase {
         uint256 offerId = mkt.getSale(saleId).offerId;
         vm.prank(bob);
         mkt.withdrawOffer(offerId, bob);
-        assertEq(usdt.balanceOf(bob), 1_000e18, "buyer refunded in full");
+        assertEq(usdt.balanceOf(bob), 1_035e18, "buyer refunded in full, plus 1.5% for the wait");
+        assertEq(usdt.balanceOf(treasury), 15e18, "the treasury takes the other 1.5%");
         assertEq(usdt.balanceOf(address(mkt)), 0);
     }
 
@@ -191,12 +194,11 @@ contract CohortMarketListingsTest is MarketTestBase {
         (uint256 cohort, uint256 b) = _sellerWithShares(alice, 10 ether);
         vm.prank(alice);
         uint256 id = mkt.listShares(_idB(cohort), b, 500e18, 1, 3 days);
-        usdc.mint(bob, 500e18);
+        _fund(usdc, bob, 500e18);
         vm.startPrank(bob);
-        usdc.approve(address(mkt), 500e18);
         mkt.buyListing(id, b);
         vm.stopPrank();
-        assertEq(usdc.balanceOf(address(mkt)), 500e18);
+        assertEq(usdc.balanceOf(address(mkt)), 510e18, "price plus fee");
     }
 
     function test_coolingOffIsADeploymentSetting() public view {
@@ -209,9 +211,8 @@ contract CohortMarketListingDustTest is MarketTestBase {
         (uint256 cohort, uint256 b) = _sellerWithShares(alice, 10 ether);
         vm.prank(alice);
         uint256 id = mkt.listShares(_idB(cohort), b, 1_000e18, 0, 7 days);
-        usdt.mint(bob, 1_000e18);
+        _fund(usdt, bob, 1_000e18);
         vm.startPrank(bob);
-        usdt.approve(address(mkt), 1_000e18);
         vm.expectRevert(CohortMarket.SaleTooSmall.selector);
         mkt.buyListing(id, b - 1); // would leave 1 share behind
         mkt.buyListing(id, b); // the whole listing is fine

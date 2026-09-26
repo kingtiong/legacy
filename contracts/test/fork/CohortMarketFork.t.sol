@@ -45,7 +45,7 @@ contract CohortMarketForkTest is Test {
                 lockEpochs: 120
             })
         );
-        market = new CohortMarket(vault, USDT, USDC, 7 days);
+        market = new CohortMarket(vault, USDT, USDC, 7 days, makeAddr("treasury"), 200, 300);
         vm.etch(seller, "");
         vm.etch(buyer, "");
         vm.deal(seller, 20 ether);

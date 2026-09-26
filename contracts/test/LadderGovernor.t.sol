@@ -74,9 +74,9 @@ contract VaultVotesTest is DaoTestBase {
         (, uint256 a, uint256 b) = _deposit(alice, 10 ether);
         vm.prank(alice);
         vault.setApprovalForAll(address(mkt), true);
-        usdt.mint(bob, 1_000e18);
+        usdt.mint(bob, 1_020e18);
         vm.startPrank(bob);
-        usdt.approve(address(mkt), 1_000e18);
+        usdt.approve(address(mkt), 1_020e18); // the price plus the market's 2% fee
         uint256 offerId = mkt.makeOffer(_idB(0), b, 1_000e18, 0, address(0), 30 days);
         vm.stopPrank();
 
@@ -261,9 +261,9 @@ contract LadderGovernorTest is DaoTestBase {
 
         vm.prank(alice);
         vault.setApprovalForAll(address(mkt), true);
-        usdt.mint(carol, 1_000e18);
+        usdt.mint(carol, 1_020e18);
         vm.startPrank(carol);
-        usdt.approve(address(mkt), 1_000e18);
+        usdt.approve(address(mkt), 1_020e18); // the price plus the market's 2% fee
         uint256 offerId = mkt.makeOffer(_idB(0), b, 1_000e18, 0, address(0), 30 days);
         vm.stopPrank();
         vm.prank(alice);

@@ -45,7 +45,7 @@ abstract contract MarketTestBase is VaultTestBase {
                 lockEpochs: 120
             })
         );
-        m = new CohortMarket(v, t0, t1, 7 days);
+        m = new CohortMarket(v, t0, t1, 7 days, treasury, 200, 300);
         assertEq(address(m), predicted, "market deployed at the address the vault expects");
     }
 
@@ -60,14 +60,28 @@ abstract contract MarketTestBase is VaultTestBase {
         vm.stopPrank();
     }
 
+    /// @dev A buyer escrows the price plus the market's trade fee, which is what the real screens ask them for.
     function _offer(address buyer, uint256 shareId, uint256 shares, uint256 payment, address seller)
         internal
         returns (uint256 offerId)
     {
-        usdt.mint(buyer, payment);
+        uint256 total = payment + _tradeFee(payment);
+        usdt.mint(buyer, total);
         vm.startPrank(buyer);
-        usdt.approve(address(mkt), payment);
+        usdt.approve(address(mkt), total);
         offerId = mkt.makeOffer(shareId, shares, payment, 0, seller, 30 days);
         vm.stopPrank();
+    }
+
+    function _tradeFee(uint256 payment) internal view returns (uint256) {
+        return payment * mkt.TRADE_FEE_BPS() / 10_000;
+    }
+
+    /// @dev Give `who` enough stablecoin, and the market enough allowance, to pay `amount` plus the trade fee.
+    function _fund(MockStablecoin t, address who, uint256 amount) internal {
+        uint256 total = amount + _tradeFee(amount);
+        t.mint(who, total);
+        vm.prank(who);
+        t.approve(address(mkt), total);
     }
 }

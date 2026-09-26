@@ -70,9 +70,10 @@ contract MarketHandler is Test {
         if (tokens[t].blacklisted(buyer)) return; // cannot fund an offer from a blacklisted address
         shares = bound(shares, 1e18, 1e22); // 0.001 to 10 BNB of shares
         payment = bound(payment, 1e6, 1e24);
-        tokens[t].mint(buyer, payment);
+        uint256 escrow = payment + payment * mkt.TRADE_FEE_BPS() / 10_000;
+        tokens[t].mint(buyer, escrow);
         vm.startPrank(buyer);
-        tokens[t].approve(address(mkt), payment);
+        tokens[t].approve(address(mkt), escrow);
         try mkt.makeOffer(id, shares, payment, t, seller, uint64(bound(duration, 1, 30 days))) {} catch {}
         vm.stopPrank();
     }
@@ -136,7 +137,7 @@ contract MarketHandler is Test {
         if (vault.previewRedeem(l.remainingShares - shares) < mkt.MIN_SALE_VALUE()) {
             shares = l.remainingShares;
         }
-        t.mint(buyer, l.remainingPrice);
+        t.mint(buyer, l.remainingPrice + l.remainingPrice * mkt.TRADE_FEE_BPS() / 10_000);
         vm.startPrank(buyer);
         t.approve(address(mkt), l.remainingPrice);
         try mkt.buyListing(listingId, shares) {
@@ -165,6 +166,12 @@ contract MarketHandler is Test {
         uint256 saleId = saleSeed % n;
         CohortMarket.Sale memory s = mkt.getSale(saleId);
         if (s.cancelled || block.timestamp >= s.acceptedAt + mkt.COOLING_OFF()) return;
+        MockStablecoin t = tokens[mkt.getOffer(s.offerId).token];
+        if (t.blacklisted(s.seller)) return; // cannot pay the cancellation fee from a blacklisted address
+        uint256 penalty = s.payment * mkt.CANCEL_FEE_BPS() / 10_000;
+        t.mint(s.seller, penalty);
+        vm.prank(s.seller);
+        t.approve(address(mkt), penalty);
         vm.prank(s.seller);
         try mkt.cancelSale(saleId) {
             ++cancelled;
@@ -278,6 +285,8 @@ contract MarketHandler is Test {
             if (!s.paymentCollected) {
                 vm.prank(s.seller);
                 mkt.collectPayment(saleId, s.seller);
+            } else if (!s.feeSettled && s.fee != 0) {
+                mkt.settleFee(saleId);
             }
         }
         for (uint256 listingId; listingId < mkt.listingCount(); ++listingId) {
@@ -348,11 +357,14 @@ contract CohortMarketInvariants is MarketTestBase {
         uint256[2] memory owed;
         for (uint256 i; i < mkt.offerCount(); ++i) {
             CohortMarket.Offer memory o = mkt.getOffer(i);
-            owed[o.token] += o.remainingPayment + o.refundable;
+            owed[o.token] += o.remainingPayment + o.remainingFee + o.refundable;
         }
         for (uint256 i; i < mkt.saleCount(); ++i) {
             CohortMarket.Sale memory s = mkt.getSale(i);
-            if (!s.cancelled && !s.paymentCollected) owed[mkt.getOffer(s.offerId).token] += s.payment;
+            if (s.cancelled) continue;
+            uint8 token = mkt.getOffer(s.offerId).token;
+            if (!s.paymentCollected) owed[token] += s.payment;
+            if (!s.feeSettled) owed[token] += s.fee;
         }
         assertEq(usdt.balanceOf(address(mkt)), owed[0], "USDT");
         assertEq(usdc.balanceOf(address(mkt)), owed[1], "USDC");
@@ -391,7 +403,9 @@ contract CohortMarketInvariants is MarketTestBase {
         assertEq(handler.cancelListingFailed(), 0, vm.toString(abi.encodePacked(handler.lastUnexpected())));
     }
 
-    function invariant_sellerCanAlwaysCancelInCoolingOff() public view {
+    /// A seller who holds the cancellation fee can always undo a sale within the cooling-off. One who cannot pay it
+    /// simply does not cancel, and the sale completes: that case is covered in test/MarketFees.t.sol.
+    function invariant_sellerWhoPaysCanAlwaysCancelInCoolingOff() public view {
         assertEq(
             handler.cancelInCoolingOffFailed(), 0, vm.toString(abi.encodePacked(handler.lastUnexpected()))
         );

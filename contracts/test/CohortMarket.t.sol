@@ -21,7 +21,7 @@ contract CohortMarketTest is MarketTestBase {
     function test_marketRefusesVaultThatExpectsAnotherAddress() public {
         // `vault` expects `mkt`; any new market lands elsewhere
         vm.expectRevert(CohortMarket.MarketMismatch.selector);
-        new CohortMarket(vault, usdt, usdc, 7 days);
+        new CohortMarket(vault, usdt, usdc, 7 days, treasury, 200, 300);
     }
 
     // ================================================================ happy path
@@ -54,7 +54,9 @@ contract CohortMarketTest is MarketTestBase {
         assertEq(vault.balanceOf(address(mkt), _idB(cohort)), 0);
     }
 
-    function test_buyerCanResellThroughTheMarket() public {
+    /// @notice A rung leaves its saver once. Whoever buys it holds it to maturity and cannot pass it on, wherever
+    ///         they keep it: the vault moves emergency shares only through this market, and this market refuses.
+    function test_buyerCannotResell() public {
         (uint256 cohort, uint256 b) = _sellerWithShares(alice, 10 ether);
         uint256 offerId = _offer(bob, _idB(cohort), b, 1_000e18, address(0));
         vm.prank(alice);
@@ -64,19 +66,53 @@ contract CohortMarketTest is MarketTestBase {
         mkt.collectShares(saleId, bob);
         vault.setApprovalForAll(address(mkt), true);
         vm.stopPrank();
+        assertEq(mkt.boughtShares(bob, _idB(cohort)), b, "recorded against the address that received them");
 
         uint256 offer2 = _offer(carol, _idB(cohort), b, 1_100e18, bob);
         vm.prank(bob);
+        vm.expectRevert(CohortMarket.ResaleRestricted.selector);
         mkt.acceptOffer(offer2, b);
-        assertEq(vault.balanceOf(address(mkt), _idB(cohort)), b);
+
+        vm.prank(bob);
+        vm.expectRevert(CohortMarket.ResaleRestricted.selector);
+        mkt.listShares(_idB(cohort), b, 1_100e18, 0, 7 days);
+
+        // Nor by moving them somewhere else first: the vault will not let them out.
+        vm.prank(bob);
+        vm.expectRevert(abi.encodeWithSelector(LadderVault.TransferRestricted.selector, _idB(cohort)));
+        vault.safeTransferFrom(bob, carol, _idB(cohort), b, "");
+    }
+
+    /// @notice Buying does not freeze what you saved yourself: only the bought shares are stuck.
+    function test_buyerMayStillSellWhatTheySavedThemselves() public {
+        (uint256 cohort, uint256 b) = _sellerWithShares(alice, 10 ether);
+        uint256 offerId = _offer(bob, _idB(cohort), b, 1_000e18, address(0));
+        vm.prank(alice);
+        uint256 saleId = mkt.acceptOffer(offerId, b);
+
+        // bob saves into the same cohort himself, then collects what he bought.
+        vm.startPrank(bob);
+        (, , uint256 own) = vault.deposit{value: 4 ether}(bob, 7_000);
+        vault.setApprovalForAll(address(mkt), true);
+        vm.stopPrank();
+        vm.warp(block.timestamp + 7 days);
+        vm.prank(bob);
+        mkt.collectShares(saleId, bob);
+
+        vm.prank(bob);
+        uint256 listingId = mkt.listShares(_idB(cohort), own, 400e18, 0, 7 days);
+        assertEq(mkt.getListing(listingId).remainingShares, own, "his own savings are still his to sell");
+
+        vm.prank(bob);
+        vm.expectRevert(CohortMarket.ResaleRestricted.selector);
+        mkt.listShares(_idB(cohort), 1, 1e18, 0, 7 days);
     }
 
     // ================================================================ what can be offered
 
     function test_offer_rejectsRetirementAndFeeShares() public {
-        usdt.mint(bob, 1e18);
+        _fund(usdt, bob, 1e18);
         vm.startPrank(bob);
-        usdt.approve(address(mkt), 1e18);
         vm.expectRevert(CohortMarket.NotEmergencyShare.selector);
         mkt.makeOffer(_idA(0), 1, 1e18, 0, address(0), 1 days);
         vm.expectRevert(CohortMarket.NotEmergencyShare.selector);
@@ -85,9 +121,8 @@ contract CohortMarketTest is MarketTestBase {
     }
 
     function test_offer_rejectsBadTermsAndTokens() public {
-        usdt.mint(bob, 10e18);
+        _fund(usdt, bob, 10e18);
         vm.startPrank(bob);
-        usdt.approve(address(mkt), 10e18);
         vm.expectRevert(CohortMarket.InvalidAmount.selector);
         mkt.makeOffer(_idB(0), 0, 1e18, 0, address(0), 1 days);
         vm.expectRevert(CohortMarket.InvalidDuration.selector);
@@ -104,9 +139,8 @@ contract CohortMarketTest is MarketTestBase {
         uint256 offerId = _offer(bob, _idB(cohort), b, 1e18, address(0));
 
         vm.warp(maturity - 7 days);
-        usdt.mint(bob, 1e18);
+        _fund(usdt, bob, 1e18);
         vm.startPrank(bob);
-        usdt.approve(address(mkt), 1e18);
         vm.expectRevert(abi.encodeWithSelector(CohortMarket.CohortClosed.selector, maturity));
         mkt.makeOffer(_idB(cohort), b, 1e18, 0, address(0), 1 days);
         vm.stopPrank();
@@ -121,9 +155,9 @@ contract CohortMarketTest is MarketTestBase {
         taxed.setFeeBps(100);
         (LadderVault v, CohortMarket m) = _deployPair(usdt, taxed);
         vm.label(address(v), "vault2");
-        taxed.mint(bob, 1e18);
+        taxed.mint(bob, 1.02e18);
         vm.startPrank(bob);
-        taxed.approve(address(m), 1e18);
+        taxed.approve(address(m), 1.02e18);
         vm.expectRevert(CohortMarket.UnsupportedToken.selector);
         m.makeOffer(_idB(0), 1, 1e18, 1, address(0), 1 days);
         vm.stopPrank();
@@ -173,7 +207,7 @@ contract CohortMarketTest is MarketTestBase {
 
         vm.prank(bob);
         mkt.withdrawOffer(offerId, bob);
-        assertEq(usdt.balanceOf(bob), 1e18, "expired offer fully refundable");
+        assertEq(usdt.balanceOf(bob), 1.02e18, "expired offer refunds the price and the fee with it");
     }
 
     function test_accept_retirementSharesCannotBeEscrowed() public {
@@ -197,14 +231,19 @@ contract CohortMarketTest is MarketTestBase {
         mkt.cancelSale(saleId);
 
         vm.warp(block.timestamp + 7 days - 1);
+        // Cancelling costs the seller 3% of the price: half to the buyer, half to the DAO.
+        usdt.mint(alice, 30e18);
+        vm.prank(alice);
+        usdt.approve(address(mkt), 30e18);
         vm.prank(alice);
         mkt.cancelSale(saleId);
         assertEq(vault.balanceOf(alice, _idB(cohort)), b, "shares back");
-        assertEq(mkt.getOffer(offerId).refundable, 1_000e18);
+        assertEq(mkt.getOffer(offerId).refundable, 1_035e18, "price, the buyer's fee, and 1.5% for the wait");
+        assertEq(usdt.balanceOf(treasury), 15e18, "the other 1.5%");
 
         vm.prank(bob);
         mkt.withdrawOffer(offerId, bob);
-        assertEq(usdt.balanceOf(bob), 1_000e18, "buyer made whole");
+        assertEq(usdt.balanceOf(bob), 1_035e18, "buyer more than made whole");
 
         vm.prank(alice);
         vm.expectRevert(CohortMarket.SaleClosed.selector);

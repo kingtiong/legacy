@@ -13,9 +13,10 @@ import {LadderVault} from "./LadderVault.sol";
 /// @notice The only way to sell emergency-bucket shares before they mature. Either side can start a deal: a buyer
 ///         escrows stablecoin in an offer that a holder accepts, or a holder escrows shares in a listing that a buyer
 ///         pays for. Either way the deal becomes a sale with a cooling-off (seven days in production) during which
-///         only the seller may cancel. After it, each side collects independently.
+///         only the seller may cancel, and only by paying the buyer for the wait. After it, each side collects
+///         independently.
 /// @dev    Security rules (see docs/THREAT_MODEL.md):
-///         - No owner, no admin, no fees, no upgrade.
+///         - No owner, no admin, no upgrade. The two fees are fixed at deployment and go to the DAO treasury.
 ///         - Neither party can block the other: shares and payment are collected separately, to an address the
 ///           collector chooses, so a blacklisted or non-receiving address only ever affects its own side.
 ///         - Only emergency-bucket shares, and only tokens this contract pulled itself, are ever held. The vault
@@ -30,6 +31,18 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
     /// @notice How long a seller may cancel after a sale. Seven days in production; a deployment setting only so
     ///         the test edition can replay it in minutes.
     uint256 public immutable COOLING_OFF;
+    /// @notice Where both fees go: the DAO treasury, fixed at deployment like everything else here.
+    address public immutable FEE_RECIPIENT;
+    /// @notice Taken from the buyer on top of the price the seller asked for, so a seller always receives exactly
+    ///         what was agreed. Charged only when a sale completes; a cancelled sale returns it to the buyer.
+    uint256 public immutable TRADE_FEE_BPS;
+    /// @notice What a seller pays to cancel during the cooling-off, as a share of the price: half compensates the
+    ///         buyer for the days their money sat locked, half goes to the treasury. A seller who will not pay it
+    ///         simply does not cancel, and the sale completes.
+    uint256 public immutable CANCEL_FEE_BPS;
+    uint256 public constant MAX_TRADE_FEE_BPS = 300;
+    uint256 public constant MAX_CANCEL_FEE_BPS = 500;
+    uint256 internal constant BPS = 10_000;
     uint256 public constant MAX_OFFER_DURATION = 30 days;
     /// @notice A sale must be worth at least this much BNB. Dust sales could otherwise mature into claims too small
     ///         for the vault to pay, and would be free spam.
@@ -43,7 +56,8 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         uint256 shareId;
         uint256 remainingShares;
         uint256 remainingPayment;
-        uint256 refundable; // payment returned by cancelled sales
+        uint256 remainingFee; // the buyer's trade fee, still unspent
+        uint256 refundable; // payment, fee and cancellation compensation returned by cancelled sales
     }
 
     struct Sale {
@@ -54,8 +68,10 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         bool sharesCollected;
         bool paymentCollected;
         bool claimOpened;
+        bool feeSettled;
         uint256 shares;
         uint256 payment;
+        uint256 fee;
         uint256 claimId;
     }
 
@@ -69,6 +85,11 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         uint256 remainingPrice;
         uint256 claimId;
     }
+
+    /// @notice Emergency shares a holder bought here, which they may never sell on. A rung leaves its original
+    ///         saver once: the buyer holds it to maturity. Counted per share id and per holder, so someone who both
+    ///         saved and bought may still sell what they saved.
+    mapping(address => mapping(uint256 => uint256)) public boughtShares;
 
     Offer[] internal _offers;
     Sale[] internal _sales;
@@ -93,7 +114,8 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         uint256 payment,
         uint64 coolingOffEnds
     );
-    event SaleCancelled(uint256 indexed saleId);
+    event SaleCancelled(uint256 indexed saleId, uint256 paidToBuyer, uint256 paidToTreasury);
+    event FeeSettled(uint256 indexed saleId, uint256 amount);
     event SharesCollected(uint256 indexed saleId, address to, uint256 shares);
     event SaleClaimOpened(uint256 indexed saleId, uint256 claimId);
     event WorthlessSharesAbandoned(uint256 indexed saleId, uint256 shares);
@@ -137,18 +159,35 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
     error NoSaleClaim();
     error UnexpectedTokens();
     error MarketMismatch();
+    error FeeTooHigh();
+    error FeeNotDue();
+    /// @notice These shares were bought on this market and cannot be sold again.
+    error ResaleRestricted();
     error SaleTooSmall();
     error UnknownListing();
     error NotListingSeller();
     error ListingClosed();
     error NoListingClaim();
 
-    constructor(LadderVault vault, IERC20 token0, IERC20 token1, uint256 coolingOff) {
+    constructor(
+        LadderVault vault,
+        IERC20 token0,
+        IERC20 token1,
+        uint256 coolingOff,
+        address feeRecipient,
+        uint256 tradeFeeBps,
+        uint256 cancelFeeBps
+    ) {
         if (address(token0) == address(0) || address(token1) == address(0) || token0 == token1) {
             revert InvalidToken();
         }
         if (coolingOff == 0) revert InvalidDuration();
+        if (feeRecipient == address(0)) revert ZeroAddress();
+        if (tradeFeeBps > MAX_TRADE_FEE_BPS || cancelFeeBps > MAX_CANCEL_FEE_BPS) revert FeeTooHigh();
         COOLING_OFF = coolingOff;
+        FEE_RECIPIENT = feeRecipient;
+        TRADE_FEE_BPS = tradeFeeBps;
+        CANCEL_FEE_BPS = cancelFeeBps;
         // The vault fixes its market address at deployment; refuse to exist anywhere else.
         if (vault.MARKET() != address(this)) revert MarketMismatch();
         VAULT = vault;
@@ -175,9 +214,8 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         uint256 maturesAt = VAULT.maturityOf(shareId >> 2);
         if (block.timestamp + COOLING_OFF >= maturesAt) revert CohortClosed(maturesAt);
 
-        uint256 before = t.balanceOf(address(this));
-        t.safeTransferFrom(msg.sender, address(this), payment);
-        if (t.balanceOf(address(this)) - before != payment) revert UnsupportedToken();
+        uint256 fee = _tradeFee(payment);
+        _pull(t, msg.sender, payment + fee);
 
         offerId = _offers.length;
         uint64 expiresAt = uint64(block.timestamp) + duration;
@@ -190,6 +228,7 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
                 shareId: shareId,
                 remainingShares: shares,
                 remainingPayment: payment,
+                remainingFee: fee,
                 refundable: 0
             })
         );
@@ -201,10 +240,11 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         Offer storage o = _offer(offerId);
         if (msg.sender != o.buyer) revert NotBuyer();
         if (to == address(0)) revert ZeroAddress();
-        uint256 amount = o.remainingPayment + o.refundable;
+        uint256 amount = o.remainingPayment + o.remainingFee + o.refundable;
         if (amount == 0) revert InvalidAmount();
         o.remainingShares = 0;
         o.remainingPayment = 0;
+        o.remainingFee = 0;
         o.refundable = 0;
         emit OfferWithdrawn(offerId, to, amount);
         _token(o.token).safeTransfer(to, amount);
@@ -223,6 +263,9 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
 
         s.sharesCollected = true;
         if (block.timestamp < VAULT.maturityOf(o.shareId >> 2)) {
+            // Marked against the address that receives them, so sending them to a fresh wallet changes nothing: the
+            // vault lets emergency shares move only through this market, and this market will not take them back.
+            boughtShares[to][o.shareId] += s.shares;
             emit SharesCollected(saleId, to, s.shares);
             VAULT.safeTransferFrom(address(this), to, o.shareId, s.shares, "");
         } else if (VAULT.previewRedeem(s.shares) == 0) {
@@ -253,16 +296,19 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         if (block.timestamp >= o.expiresAt) revert OfferExpired();
         if (o.seller != address(0) && o.seller != msg.sender) revert NotOfferedToYou();
         if (shares == 0 || shares > o.remainingShares) revert InvalidAmount();
+        _requireNotResale(msg.sender, o.shareId, shares);
         if (VAULT.previewRedeem(shares) < MIN_SALE_VALUE) revert SaleTooSmall();
         uint256 maturesAt = VAULT.maturityOf(o.shareId >> 2);
         if (block.timestamp + COOLING_OFF >= maturesAt) revert CohortClosed(maturesAt);
 
-        uint256 payment = shares == o.remainingShares
-            ? o.remainingPayment
-            : Math.mulDiv(o.remainingPayment, shares, o.remainingShares);
+        bool wholeOffer = shares == o.remainingShares;
+        uint256 payment = wholeOffer ? o.remainingPayment : Math.mulDiv(o.remainingPayment, shares, o.remainingShares);
         if (payment == 0) revert InvalidAmount();
+        // The last fill takes whatever fee is left, so the escrow always empties to the wei.
+        uint256 fee = wholeOffer ? o.remainingFee : Math.mulDiv(o.remainingFee, shares, o.remainingShares);
         o.remainingShares -= shares;
         o.remainingPayment -= payment;
+        o.remainingFee -= fee;
 
         saleId = _sales.length;
         _sales.push(
@@ -274,8 +320,10 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
                 sharesCollected: false,
                 paymentCollected: false,
                 claimOpened: false,
+                feeSettled: false,
                 shares: shares,
                 payment: payment,
+                fee: fee,
                 claimId: 0
             })
         );
@@ -286,8 +334,9 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         VAULT.safeTransferFrom(msg.sender, address(this), o.shareId, shares, "");
     }
 
-    /// @notice Change your mind within the cooling-off: your shares come back, and the payment becomes refundable to
-    ///         the buyer.
+    /// @notice Change your mind within the cooling-off. Your shares come back, and the buyer gets everything they
+    ///         paid plus half of your cancellation fee for the days their money was locked; the other half goes to
+    ///         the treasury. You must be able to pay that fee: a seller who cannot simply lets the sale complete.
     function cancelSale(uint256 saleId) external nonReentrant {
         Sale storage s = _sale(saleId);
         if (msg.sender != s.seller) revert NotSeller();
@@ -296,8 +345,18 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
 
         s.cancelled = true;
         Offer storage o = _offers[s.offerId];
-        o.refundable += s.payment;
-        emit SaleCancelled(saleId);
+        uint256 penalty = Math.mulDiv(s.payment, CANCEL_FEE_BPS, BPS);
+        uint256 toBuyer = penalty / 2;
+        uint256 toTreasury = penalty - toBuyer;
+        // Everything the buyer put in comes back, fee included: they are not charged for a sale that never happened.
+        o.refundable += s.payment + s.fee + toBuyer;
+        emit SaleCancelled(saleId, toBuyer, toTreasury);
+
+        IERC20 t = _token(o.token);
+        if (penalty != 0) {
+            _pull(t, msg.sender, penalty);
+            if (toTreasury != 0) t.safeTransfer(FEE_RECIPIENT, toTreasury);
+        }
 
         // Acceptance requires the cooling-off to end before maturity, so this transfer is still allowed.
         VAULT.safeTransferFrom(address(this), s.seller, o.shareId, s.shares, "");
@@ -314,7 +373,19 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
 
         s.paymentCollected = true;
         emit PaymentCollected(saleId, to, s.payment);
-        _token(_offers[s.offerId].token).safeTransfer(to, s.payment);
+        IERC20 t = _token(_offers[s.offerId].token);
+        t.safeTransfer(to, s.payment);
+        _settleFee(s, saleId, t);
+    }
+
+    /// @notice Hand the treasury its fee for a completed sale. Anyone may call it, so a seller who never collects
+    ///         their own money cannot keep the fee sitting here either.
+    function settleFee(uint256 saleId) external nonReentrant {
+        Sale storage s = _sale(saleId);
+        if (s.cancelled) revert SaleClosed();
+        if (block.timestamp < s.acceptedAt + COOLING_OFF) revert CoolingOffActive(s.acceptedAt + COOLING_OFF);
+        if (s.feeSettled || s.fee == 0) revert FeeNotDue();
+        _settleFee(s, saleId, _token(_offers[s.offerId].token));
     }
 
     // ---------------------------------------------------------------- listings (seller-initiated)
@@ -333,6 +404,7 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
         _token(token);
         uint256 maturesAt = VAULT.maturityOf(shareId >> 2);
         if (block.timestamp + COOLING_OFF >= maturesAt) revert CohortClosed(maturesAt);
+        _requireNotResale(msg.sender, shareId, shares);
         if (VAULT.previewRedeem(shares) < MIN_SALE_VALUE) revert SaleTooSmall();
 
         listingId = _listings.length;
@@ -387,9 +459,11 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
                 shareId: l.shareId,
                 remainingShares: 0,
                 remainingPayment: 0,
+                remainingFee: 0,
                 refundable: 0
             })
         );
+        uint256 fee = _tradeFee(payment);
         saleId = _sales.length;
         _sales.push(
             Sale({
@@ -400,8 +474,10 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
                 sharesCollected: false,
                 paymentCollected: false,
                 claimOpened: false,
+                feeSettled: false,
                 shares: shares,
                 payment: payment,
+                fee: fee,
                 claimId: 0
             })
         );
@@ -409,10 +485,7 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
             listingId, saleId, msg.sender, shares, payment, uint64(block.timestamp + COOLING_OFF)
         );
 
-        IERC20 t = _token(l.token);
-        uint256 before = t.balanceOf(address(this));
-        t.safeTransferFrom(msg.sender, address(this), payment);
-        if (t.balanceOf(address(this)) - before != payment) revert UnsupportedToken();
+        _pull(_token(l.token), msg.sender, payment + fee);
     }
 
     /// @notice Take back whatever is unsold. Before maturity the shares return to `to`; after it they can no longer
@@ -495,6 +568,31 @@ contract CohortMarket is ERC1155Holder, ReentrancyGuard {
     }
 
     // ---------------------------------------------------------------- internals
+
+    /// @dev A holder may put up only what they did not buy here. Escrowed shares are already out of their balance,
+    ///      so a listing in flight cannot be double-counted.
+    function _requireNotResale(address seller, uint256 shareId, uint256 shares) internal view {
+        if (VAULT.balanceOf(seller, shareId) < boughtShares[seller][shareId] + shares) revert ResaleRestricted();
+    }
+
+    /// @dev What the buyer adds on top of the seller's price.
+    function _tradeFee(uint256 payment) internal view returns (uint256) {
+        return Math.mulDiv(payment, TRADE_FEE_BPS, BPS);
+    }
+
+    /// @dev Take tokens in, refusing any that do not arrive whole (fee-on-transfer, rebasing).
+    function _pull(IERC20 t, address from, uint256 amount) internal {
+        uint256 before = t.balanceOf(address(this));
+        t.safeTransferFrom(from, address(this), amount);
+        if (t.balanceOf(address(this)) - before != amount) revert UnsupportedToken();
+    }
+
+    function _settleFee(Sale storage s, uint256 saleId, IERC20 t) internal {
+        if (s.feeSettled || s.fee == 0) return;
+        s.feeSettled = true;
+        emit FeeSettled(saleId, s.fee);
+        t.safeTransfer(FEE_RECIPIENT, s.fee);
+    }
 
     function _token(uint8 index) internal view returns (IERC20) {
         if (index == 0) return PAYMENT_TOKEN_0;

@@ -575,3 +575,6 @@ textarea:focus{border-color:var(--teal);outline:none}
 .panel-ready{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;border-color:var(--accent)}
 .panel-ready p{margin:.2rem 0 0}
 .tx-steps{display:inline-flex;flex-direction:column;gap:.35rem;align-items:flex-start}
+.toggle.slices{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+.toggle.slices button{flex:1 1 4.5rem}
+.cancelbox{display:inline-flex;flex-direction:column;gap:.3rem;align-items:flex-start}
